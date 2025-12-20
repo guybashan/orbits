@@ -4,13 +4,27 @@
 [ext_resource type="PackedScene" uid="uid://boardscene123" path="res://scenes/board.tscn" id="2_board"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0.02, 0.05, 0.1, 1)
+sky_horizon_color = Color(0.05, 0.08, 0.15, 1)
+ground_bottom_color = Color(0.01, 0.02, 0.05, 1)
+ground_horizon_color = Color(0.05, 0.08, 0.15, 1)
 
 [sub_resource type="Sky" id="Sky_1"]
 sky_material = SubResource("ProceduralSkyMaterial_1")
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 2
+background_energy_multiplier = 1.2
 sky = SubResource("Sky_1")
+tonemap_mode = 1
+glow_enabled = true
+glow_intensity = 0.5
+glow_strength = 1.0
+glow_bloom = 0.05
+glow_blend_mode = 1
+glow_hdr_threshold = 1.1
+glow_hdr_scale = 1.0
+glow_high_quality = true
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
 bg_color = Color(0.18, 0.20, 0.25, 1.0)
@@ -47,22 +61,22 @@ corner_radius_bottom_right = 20
 corner_radius_bottom_left = 20
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.12, 0.14, 0.18, 0.95)
-border_width_left = 4
-border_width_top = 4
-border_width_right = 4
-border_width_bottom = 4
-border_color = Color(0.35, 0.4, 0.5, 1)
-corner_radius_top_left = 40
-corner_radius_top_right = 40
-corner_radius_bottom_right = 40
-corner_radius_bottom_left = 40
-expand_margin_left = 20.0
-expand_margin_top = 20.0
-expand_margin_right = 20.0
-expand_margin_bottom = 20.0
-shadow_color = Color(0, 0, 0, 0.5)
-shadow_size = 40
+bg_color = Color(0.05, 0.07, 0.12, 0.85)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.2, 0.5, 1.0, 0.8)
+corner_radius_top_left = 30
+corner_radius_top_right = 30
+corner_radius_bottom_right = 30
+corner_radius_bottom_left = 30
+expand_margin_left = 15.0
+expand_margin_top = 15.0
+expand_margin_right = 15.0
+expand_margin_bottom = 15.0
+shadow_color = Color(0, 0, 0, 0.6)
+shadow_size = 30
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_script")
@@ -72,6 +86,7 @@ environment = SubResource("Environment_1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 10, 0)
+light_energy = 1.6
 shadow_enabled = true
 
 [node name="Camera3D" type="Camera3D" parent="."]

@@ -10,10 +10,10 @@ config_version=5
 
 [application]
 
-config/name="game-test"
+config/name="Orbits"
 config/features=PackedStringArray("4.3", "Forward Plus")
 run/main_scene="res://scenes/main.tscn"
-config/icon="res://icon.svg"
+config/icon="res://icon.png"
 
 [display]
 
@@ -24,4 +24,4 @@ window/stretch/mode="canvas_items"
 
 [dotnet]
 
-project/assembly_name="game-test"
+project/assembly_name="Orbits"

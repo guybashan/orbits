@@ -77,11 +77,26 @@ func animate_bounce(grid_pos: Vector2i, direction: Vector2i) -> void:
 	
 	var ball = balls[grid_pos]
 	var original_pos = ball.position
-	var bounce_vec = Vector3(direction.x, 0, direction.y) * (SPACING * 0.3)
+	var bounce_vec = Vector3(direction.x, 0, direction.y) * (SPACING * 0.4)
 	
+	# Create a complex tween for position and scale (squash & stretch)
 	var tween = create_tween()
-	tween.tween_property(ball, "position", original_pos + bounce_vec, 0.05).set_trans(Tween.TRANS_SINE)
-	tween.tween_property(ball, "position", original_pos, 0.1).set_trans(Tween.TRANS_BOUNCE)
+	tween.set_parallel(true)
+	
+	# Position: Move out and back
+	tween.tween_property(ball, "position", original_pos + bounce_vec, 0.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.chain().tween_property(ball, "position", original_pos, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	
+	# Scale: Squash when hitting "wall", traverse to stretch
+	var squash = Vector3(1.2, 0.8, 1.2) # Flatten
+	if direction.x != 0: squash = Vector3(0.8, 1.2, 1.2) # Adjust based on axis if needed, but uniform squash is fine for this simple abstract style
+	
+	# Simple wobble
+	var original_scale = Vector3.ONE
+	var wobble_scale = Vector3(1.2, 0.8, 1.2) 
+	
+	tween.tween_property(ball, "scale", wobble_scale, 0.1).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.chain().tween_property(ball, "scale", original_scale, 0.3).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	
 	if sfx_bounce and not is_muted:
 		sfx_bounce.play()
