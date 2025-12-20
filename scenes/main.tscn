@@ -1,0 +1,236 @@
+[gd_scene load_steps=6 format=3 uid="uid://mainscene123"]
+
+[ext_resource type="Script" path="res://scripts/game_main.gd" id="1_script"]
+[ext_resource type="PackedScene" uid="uid://boardscene123" path="res://scenes/board.tscn" id="2_board"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+bg_color = Color(0.18, 0.20, 0.25, 1.0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.35, 0.4, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 5
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+bg_color = Color(0.25, 0.28, 0.35, 1.0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.45, 0.5, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
+bg_color = Color(0.1, 0.12, 0.15, 1.0)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.12, 0.14, 0.18, 0.95)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.35, 0.4, 0.5, 1)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+expand_margin_left = 20.0
+expand_margin_top = 20.0
+expand_margin_right = 20.0
+expand_margin_bottom = 20.0
+shadow_color = Color(0, 0, 0, 0.5)
+shadow_size = 40
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 10, 0)
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 3.3, 20, 7.5)
+projection = 1
+size = 21.0
+current = true
+
+[node name="PlayBoard" parent="." instance=ExtResource("2_board")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8.5)
+
+[node name="TargetBoard" parent="." instance=ExtResource("2_board")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="OverlayDim" type="ColorRect" parent="CanvasLayer"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="TopStats" type="HBoxContainer" parent="CanvasLayer"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 30.0
+offset_right = -20.0
+offset_bottom = 110.0
+grow_horizontal = 2
+theme_override_constants/separation = 30
+alignment = 0
+
+[node name="StepsLabel" type="Label" parent="CanvasLayer/TopStats"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "Steps: 0"
+vertical_alignment = 1
+
+[node name="LevelLabel" type="Label" parent="CanvasLayer/TopStats"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 32
+text = "Level: 1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SettingsButton" type="Button" parent="CanvasLayer/TopStats"]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "⚙"
+
+[node name="WinLabel" type="Label" parent="CanvasLayer"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -180.0
+offset_right = 20.0
+offset_bottom = -110.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.9, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 64
+text = "YOU WIN!"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NextLevelPanel" type="PanelContainer" parent="CanvasLayer"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -50.0
+offset_right = 150.0
+offset_bottom = 50.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/NextLevelPanel"]
+layout_mode = 2
+theme_override_constants/separation = 25
+alignment = 1
+
+[node name="Label" type="Label" parent="CanvasLayer/NextLevelPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
+theme_override_font_sizes/font_size = 40
+text = "Level Complete!"
+horizontal_alignment = 1
+
+[node name="NextButton" type="Button" parent="CanvasLayer/NextLevelPanel/VBox"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "NEXT LEVEL"
+
+[node name="SettingsPanel" type="PanelContainer" parent="CanvasLayer"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/SettingsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="Label" type="Label" parent="CanvasLayer/SettingsPanel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="SoundCheck" type="CheckButton" parent="CanvasLayer/SettingsPanel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+button_pressed = true
+text = "Sound Effects"
+alignment = 1
+
+[node name="CloseButton" type="Button" parent="CanvasLayer/SettingsPanel/VBox"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "Close"
+
+[connection signal="pressed" from="CanvasLayer/TopStats/SettingsButton" to="." method="_on_settings_button_pressed"]
+[connection signal="pressed" from="CanvasLayer/NextLevelPanel/VBox/NextButton" to="." method="_on_next_level_pressed"]
+[connection signal="toggled" from="CanvasLayer/SettingsPanel/VBox/SoundCheck" to="." method="_on_sound_check_toggled"]
+[connection signal="pressed" from="CanvasLayer/SettingsPanel/VBox/CloseButton" to="." method="_on_close_button_pressed"]
