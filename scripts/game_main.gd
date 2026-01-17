@@ -9,6 +9,9 @@ extends Node3D
 @onready var level_label: Label = $CanvasLayer/TopStats/LevelLabel
 @onready var next_level_panel: PanelContainer = $CanvasLayer/NextLevelPanel
 @onready var overlay_dim: ColorRect = $CanvasLayer/OverlayDim
+@onready var confirm_restart: ConfirmationDialog = $CanvasLayer/ConfirmRestart
+@onready var confirm_prev: ConfirmationDialog = $CanvasLayer/ConfirmPrev
+@onready var next_button_top: Button = $CanvasLayer/TopStats/NextButton
 
 var selected_ball_pos: Vector2i = Vector2i(-1, -1)
 var is_dragging: bool = false
@@ -20,6 +23,10 @@ const BOARD_SIZE = 7
 const GRID_SIZE = 7
 
 func _ready() -> void:
+	# Load Data
+	GameData.load_data()
+	current_level = GameData.current_level_index
+	
 	# Initialize Boards
 	_setup_game()
 	settings_panel.visible = false
@@ -27,11 +34,33 @@ func _ready() -> void:
 	overlay_dim.visible = false
 
 func _on_next_level_pressed() -> void:
-	current_level += 1
+	_on_next_pressed()
+
+func _on_next_pressed() -> void:
+	if current_level < GameData.max_completed_level:
+		current_level += 1
+		GameData.current_level_index = current_level
+		GameData.save_data()
+		_setup_game()
+		next_level_panel.visible = false
+		overlay_dim.visible = false
+		set_process_unhandled_input(true)
+
+func _on_prev_pressed() -> void:
+	confirm_prev.popup_centered()
+
+func _on_confirm_prev_confirmed() -> void:
+	if current_level > 0:
+		current_level -= 1
+		GameData.current_level_index = current_level
+		GameData.save_data()
+		_setup_game()
+
+func _on_restart_pressed() -> void:
+	confirm_restart.popup_centered()
+
+func _on_confirm_restart_confirmed() -> void:
 	_setup_game()
-	next_level_panel.visible = false
-	overlay_dim.visible = false
-	set_process_unhandled_input(true)
 
 func _on_settings_button_pressed() -> void:
 	settings_panel.visible = true
@@ -56,7 +85,11 @@ func _setup_game() -> void:
 	
 	step_count = 0
 	steps_label.text = "Steps: 0"
-	level_label.text = "Level: %d" % (current_level + 1)
+	# level_label.text = "Level: %d" % (current_level + 1) # Old label format
+	level_label.text = "Level %d" % (current_level + 1)
+	
+	# Update Next Button State
+	next_button_top.disabled = (current_level >= GameData.max_completed_level)
 	
 	var levels = [
 		{ # 1. Square (2 colors: 4, 2)
@@ -323,15 +356,20 @@ func _setup_game() -> void:
 			#  So the Target board should effectively show where the holes go too?)
 			#  Yes, to match it perfectly, the holes must align.
 	
-	# 2. Scatter on Play Board
-	# We take the exact list of balls (from balls_data) and scatter them.
+	# 2. Scatter on Play Board (Deterministic)
+	# Use a seeded RNG to ensure the same level index always has the same starting layout
+	var rng = RandomNumberGenerator.new()
+	rng.seed = hash(current_level)
+	
 	var play_slots = all_positions.duplicate()
-	play_slots.shuffle()
+	# Custom shuffle using our seeded RNG
+	for i in range(play_slots.size() - 1, 0, -1):
+		var j = rng.randi_range(0, i)
+		var temp = play_slots[i]
+		play_slots[i] = play_slots[j]
+		play_slots[j] = temp
 	
 	for color in balls_data:
-		# We have N balls. We have 36 slots.
-		# balls_data size is number of non-zero entries.
-		# Scatter them into random slots.
 		if play_slots.is_empty():
 			break
 		var pos = play_slots.pop_back()
@@ -409,7 +447,8 @@ func _try_move(from: Vector2i, drag_vec: Vector2) -> void:
 	if not play_board.get_ball_at(target):
 		play_board.move_ball(from, target)
 		_update_steps()
-		_check_win()
+		if not win_label.visible: # Only check if not already won
+			_check_win()
 	else:
 		play_board.animate_bounce(from, direction)
 
@@ -423,6 +462,14 @@ func _check_win() -> void:
 		overlay_dim.visible = true
 		set_process_unhandled_input(false)
 		print("WIN!")
+		
+		# Save Progress
+		if current_level + 1 > GameData.max_completed_level:
+			GameData.max_completed_level = current_level + 1
+			GameData.save_data()
+			
+		# Enable Next Button
+		next_button_top.disabled = false
 
 func _world_to_grid(world_pos: Vector3) -> Vector2i:
 	# Playboard is at (0,0,0) locally? Need to check scene setup.

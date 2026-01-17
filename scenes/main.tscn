@@ -27,38 +27,44 @@ glow_hdr_scale = 1.0
 glow_high_quality = true
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
-bg_color = Color(0.18, 0.20, 0.25, 1.0)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.3, 0.35, 0.4, 1)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
-shadow_color = Color(0, 0, 0, 0.3)
-shadow_size = 5
-shadow_offset = Vector2(0, 3)
+bg_color = Color(0.05, 0.1, 0.2, 0.7)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.1, 0.7, 1, 1)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+shadow_color = Color(0.1, 0.5, 1, 0.4)
+shadow_size = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-bg_color = Color(0.25, 0.28, 0.35, 1.0)
+bg_color = Color(0.1, 0.25, 0.45, 0.8)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.3, 0.9, 1, 1)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
+shadow_color = Color(0.3, 0.8, 1, 0.5)
+shadow_size = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
+bg_color = Color(0.02, 0.05, 0.1, 0.9)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.4, 0.45, 0.5, 1)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
-bg_color = Color(0.1, 0.12, 0.15, 1.0)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
+border_color = Color(0.1, 0.5, 1, 1)
+corner_radius_top_left = 40
+corner_radius_top_right = 40
+corner_radius_bottom_right = 40
+corner_radius_bottom_left = 40
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.05, 0.07, 0.12, 0.85)
@@ -125,25 +131,64 @@ alignment = 0
 
 [node name="StepsLabel" type="Label" parent="CanvasLayer/TopStats"]
 layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
+theme_override_constants/shadow_outline_size = 5
 theme_override_font_sizes/font_size = 32
 text = "Steps: 0"
 vertical_alignment = 1
 
+[node name="PrevButton" type="Button" parent="CanvasLayer/TopStats"]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+focus_mode = 0
+text = "<"
+
+[node name="RestartButton" type="Button" parent="CanvasLayer/TopStats"]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+focus_mode = 0
+text = "R"
+
 [node name="LevelLabel" type="Label" parent="CanvasLayer/TopStats"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 32
-text = "Level: 1"
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
+theme_override_constants/shadow_outline_size = 5
+theme_override_font_sizes/font_size = 36
+text = "Level 1"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="NextButton" type="Button" parent="CanvasLayer/TopStats"]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 40
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+focus_mode = 0
+text = ">"
 
 [node name="SettingsButton" type="Button" parent="CanvasLayer/TopStats"]
 custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
-theme_override_font_sizes/font_size = 48
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 40
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+focus_mode = 0
 text = "⚙"
 
 [node name="WinLabel" type="Label" parent="CanvasLayer"]
@@ -197,10 +242,12 @@ horizontal_alignment = 1
 [node name="NextButton" type="Button" parent="CanvasLayer/NextLevelPanel/VBox"]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_override_font_sizes/font_size = 32
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+focus_mode = 0
 text = "NEXT LEVEL"
 
 [node name="SettingsPanel" type="PanelContainer" parent="CanvasLayer"]
@@ -239,13 +286,38 @@ alignment = 1
 [node name="CloseButton" type="Button" parent="CanvasLayer/SettingsPanel/VBox"]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
+mouse_default_cursor_shape = 2
 theme_override_font_sizes/font_size = 32
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+focus_mode = 0
 text = "Close"
 
+[node name="ConfirmRestart" type="ConfirmationDialog" parent="CanvasLayer"]
+title = "Restart Level?"
+initial_position = 2
+size = Vector2i(400, 150)
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+ok_button_text = "Yes"
+cancel_button_text = "No"
+dialog_text = "Are you sure you want to restart this level?"
+
+[node name="ConfirmPrev" type="ConfirmationDialog" parent="CanvasLayer"]
+title = "Previous Level?"
+initial_position = 2
+size = Vector2i(400, 150)
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+ok_button_text = "Yes"
+cancel_button_text = "No"
+dialog_text = "Going back will reset the current level. Are you sure?"
+
+[connection signal="pressed" from="CanvasLayer/TopStats/PrevButton" to="." method="_on_prev_pressed"]
+[connection signal="pressed" from="CanvasLayer/TopStats/RestartButton" to="." method="_on_restart_pressed"]
+[connection signal="pressed" from="CanvasLayer/TopStats/NextButton" to="." method="_on_next_pressed"]
 [connection signal="pressed" from="CanvasLayer/TopStats/SettingsButton" to="." method="_on_settings_button_pressed"]
+[connection signal="confirmed" from="CanvasLayer/ConfirmRestart" to="." method="_on_confirm_restart_confirmed"]
+[connection signal="confirmed" from="CanvasLayer/ConfirmPrev" to="." method="_on_confirm_prev_confirmed"]
 [connection signal="pressed" from="CanvasLayer/NextLevelPanel/VBox/NextButton" to="." method="_on_next_level_pressed"]
 [connection signal="toggled" from="CanvasLayer/SettingsPanel/VBox/SoundCheck" to="." method="_on_sound_check_toggled"]
 [connection signal="pressed" from="CanvasLayer/SettingsPanel/VBox/CloseButton" to="." method="_on_close_button_pressed"]
