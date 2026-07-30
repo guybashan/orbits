@@ -15,6 +15,10 @@ var sfx_enabled := true
 var music_enabled := true
 var haptics_enabled := true
 
+## Headless tests drive real play sessions, so they must not be able to write
+## over a player's actual progress. They set this to false before starting.
+var persist_enabled := true
+
 var _dirty_timer: SceneTreeTimer
 
 
@@ -41,6 +45,11 @@ func total_stars() -> int:
 
 func is_unlocked(index: int) -> bool:
 	if index <= 0:
+		return true
+	# A level you have already cleared never re-locks, even if the save is
+	# inconsistent about the one before it. Without this, earned stars become
+	# invisible and unreachable.
+	if stars_for(index) > 0:
 		return true
 	return stars_for(index - 1) > 0
 
@@ -88,6 +97,8 @@ func reset_progress() -> void:
 # ------------------------------------------------------------------- disk --
 
 func save_data() -> void:
+	if not persist_enabled:
+		return
 	var payload := {
 		"version": SAVE_VERSION,
 		"stars": _int_keyed_to_string(stars),

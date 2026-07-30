@@ -24,6 +24,7 @@ func _run() -> void:
 		print("FAIL: GameData autoload missing")
 		quit(1)
 		return
+	data.persist_enabled = false  # never touch the player's real save
 	data.last_level = level_index
 
 	change_scene_to_file("res://scenes/main.tscn")
