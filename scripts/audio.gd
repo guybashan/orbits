@@ -14,14 +14,18 @@ const STREAMS := {
 	"win": preload("res://sounds/win.wav"),
 }
 
+## Trimmed against each clip's measured RMS rather than by eye. `move` fires on
+## every single move, so it sits well under the rest of the set.
 const VOLUMES := {
-	"move": -14.0,
-	"bounce": -12.0,
-	"lock": -10.0,
-	"ui": -12.0,
+	"move": -13.0,
+	"bounce": -14.0,
+	"lock": -9.0,
+	"ui": -15.0,
 	"star": -8.0,
-	"win": -6.0,
+	"win": -5.0,
 }
+
+const MUSIC_VOLUME := -17.0
 
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _next_player := 0
@@ -40,9 +44,13 @@ func _ready() -> void:
 	var music: AudioStreamWAV = preload("res://sounds/music.wav")
 	music.loop_mode = AudioStreamWAV.LOOP_FORWARD
 	music.loop_begin = 0
-	music.loop_end = 0
+	# Set the loop end explicitly in frames. Leaving it at 0 is not a reliable
+	# way to say "the end of the clip", and a wrong loop point is instantly
+	# audible on a track that repeats every 23 seconds.
+	var bytes_per_frame := 2 * (2 if music.stereo else 1)  # 16-bit samples
+	music.loop_end = music.data.size() / bytes_per_frame
 	_music_player.stream = music
-	_music_player.volume_db = -20.0
+	_music_player.volume_db = MUSIC_VOLUME
 	add_child(_music_player)
 
 

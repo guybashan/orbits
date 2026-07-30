@@ -16,6 +16,13 @@ const DIRS: Array[Vector2i] = [
 	Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)
 ]
 
+## Layouts must be identical for every player, so generation is seeded from the
+## level index alone — never from time, device or session state. Changing these
+## two numbers reshuffles every level in the game; tests/test_levels.gd pins the
+## current layouts so that can never happen by accident.
+const SEED_BASE := 987654321
+const SEED_STRIDE := 2654435761
+
 const LEVELS: Array = [
 	# ---------------------------------------------------------------- 4x4 --
 	{
@@ -425,8 +432,12 @@ static func generate(index: int) -> Dictionary:
 	var depth: int = level["depth"]
 	var state := copy_grid(level["pattern"])
 
+	# Fixed, explicitly-derived seed: every player on every device gets exactly
+	# the same starting layout for a given level, and it survives restarts and
+	# reinstalls. Deliberately arithmetic rather than hash("...") so it cannot
+	# drift if the engine ever changes String.hash().
 	var rng := RandomNumberGenerator.new()
-	rng.seed = hash("orbits.v2.level.%d" % index)
+	rng.seed = SEED_BASE + SEED_STRIDE * (index + 1)
 
 	# Never revisit a state we've already produced — including the solved one,
 	# so the player can never be handed an already-finished board, and each

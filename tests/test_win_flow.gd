@@ -58,6 +58,20 @@ func _run() -> void:
 	# a frame count — the window runs uncapped here, so frames are no guide.
 	await create_timer(3.0).timeout
 
+	# Every ball must be sitting exactly on its socket once the celebration has
+	# played out. The winning move is still animating when the win fires, so a
+	# celebration that clobbers that tween leaves the last ball visibly short.
+	for y in main.board.grid_size:
+		for x in main.board.grid_size:
+			var cell := Vector2i(x, y)
+			var ball = main.board.ball_at(cell)
+			if ball == null:
+				continue
+			var home: Vector3 = main.board.cell_to_ball_pos(cell)
+			var drift: float = ball.position.distance_to(home)
+			if drift > 0.02:
+				failures.append("ball at %s settled %.3f units off its socket" % [str(cell), drift])
+
 	if not main.win_panel.visible:
 		failures.append("win panel never appeared")
 	if main.win_stars.earned != 3:

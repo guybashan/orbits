@@ -321,6 +321,13 @@ func celebrate() -> void:
 		_kill_tween(ball)
 		var tween := create_tween()
 		_ball_tweens[ball.get_instance_id()] = tween
+
+		# Settle into the exact cell first. The winning move is still mid-flight
+		# when the win fires, and killing its tween would otherwise strand that
+		# ball short of its socket for the whole celebration.
+		tween.tween_property(ball, "position", home, MOVE_TIME) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
 		tween.tween_interval(delay)
 		tween.tween_property(ball, "position:y", BALL_Y + 0.55, 0.20) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)

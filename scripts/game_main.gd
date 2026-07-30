@@ -326,7 +326,9 @@ func _check_win() -> void:
 	Audio.play("win")
 	Audio.haptic(40)
 
-	await get_tree().create_timer(0.85).timeout
+	# Let the celebration wave finish before the panel covers the board — the
+	# completed pattern is the reward, so the player has to actually see it.
+	await get_tree().create_timer(1.3).timeout
 	if not is_inside_tree():
 		return
 
