@@ -1,7 +1,25 @@
-# Godot-specific ignores
+# Godot
 .godot/
 *.translation
 
-# OS-specific ignores
+# Android build template + Gradle output (regenerate with
+# `godot --headless --install-android-build-template`)
+android/
+gradle/
+gradlew
+gradlew.bat
+
+# Build artifacts
+build/
+*.apk
+*.aab
+*.idsig
+*.pck
+
+# Signing material — never commit these
+*.keystore
+*.jks
+
+# OS
 .DS_Store
 *.tmp

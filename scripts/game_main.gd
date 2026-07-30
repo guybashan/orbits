@@ -1,491 +1,489 @@
 extends Node3D
 
-@onready var play_board: Node3D = $PlayBoard
-@onready var target_board: Node3D = $TargetBoard
+## Play screen. Owns input, the move/undo history, scoring and the win flow.
+
+const DRAG_THRESHOLD := 34.0       # px before a press counts as a swipe
+const CAMERA_PITCH_DEG := 61.0
+const CAMERA_DISTANCE := 34.0
+const BOARD_SCREEN_HEIGHT := 0.52  # fraction of the screen the board fills
+const BOARD_SCREEN_CENTRE := 0.555 # where the board's centre sits vertically
+
+const DIRS: Array[Vector2i] = [
+	Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)
+]
+
+@onready var board: Board = $Board
 @onready var camera: Camera3D = $Camera3D
-@onready var win_label: Label = $CanvasLayer/WinLabel
-@onready var steps_label: Label = $CanvasLayer/TopStats/StepsLabel
-@onready var settings_panel: PanelContainer = $CanvasLayer/SettingsPanel
-@onready var level_label: Label = $CanvasLayer/TopStats/LevelLabel
-@onready var next_level_panel: PanelContainer = $CanvasLayer/NextLevelPanel
-@onready var overlay_dim: ColorRect = $CanvasLayer/OverlayDim
-@onready var confirm_restart: ConfirmationDialog = $CanvasLayer/ConfirmRestart
-@onready var confirm_prev: ConfirmationDialog = $CanvasLayer/ConfirmPrev
-@onready var next_button_top: Button = $CanvasLayer/TopStats/NextButton
 
-var selected_ball_pos: Vector2i = Vector2i(-1, -1)
-var is_dragging: bool = false
-var drag_start_pos: Vector2
-var step_count: int = 0
-var current_level: int = 0
+@onready var dim: ColorRect = $UI/Dim
+@onready var top_margin: MarginContainer = $UI/Top
+@onready var level_label: Label = $UI/Top/Row/Centre/LevelLabel
+@onready var name_label: Label = $UI/Top/Row/Centre/NameLabel
+@onready var goal_view: GoalView = $UI/Top/Row/Goal
+@onready var moves_label: Label = $UI/Stats/Row/MovesLabel
+@onready var placed_label: Label = $UI/Stats/Row/PlacedLabel
+@onready var undo_button: Button = $UI/Bottom/Row/UndoButton
+@onready var toast: Label = $UI/Toast
 
-const BOARD_SIZE = 7
-const GRID_SIZE = 7
+@onready var win_panel: PanelContainer = $UI/WinPanel
+@onready var win_title: Label = $UI/WinPanel/VBox/TitleLabel
+@onready var win_stars: StarRow = $UI/WinPanel/VBox/Stars
+@onready var win_stats: Label = $UI/WinPanel/VBox/StatsLabel
+@onready var next_button: Button = $UI/WinPanel/VBox/Buttons/NextButton
+
+var level_index := 0
+var level: Dictionary = {}
+var par := 0
+
+var moves := 0
+var history: Array = []            # [{from, to}] — for undo
+var solved := false
+var input_locked := false
+
+var _selected := Vector2i(-1, -1)
+var _press_cell := Vector2i(-1, -1)
+var _press_screen := Vector2.ZERO
+var _toast_tween: Tween
+
 
 func _ready() -> void:
-	# Load Data
-	GameData.load_data()
-	current_level = GameData.current_level_index
-	
-	# Initialize Boards
-	_setup_game()
-	settings_panel.visible = false
-	next_level_panel.visible = false
-	overlay_dim.visible = false
+	level_index = clampi(GameData.last_level, 0, Levels.count() - 1)
+	Audio.update_music()
+	_apply_safe_area()
+	get_viewport().size_changed.connect(_frame_camera)
+	_start_level()
 
-func _on_next_level_pressed() -> void:
-	_on_next_pressed()
 
-func _on_next_pressed() -> void:
-	if current_level < GameData.max_completed_level:
-		current_level += 1
-		GameData.current_level_index = current_level
-		GameData.save_data()
-		_setup_game()
-		next_level_panel.visible = false
-		overlay_dim.visible = false
-		set_process_unhandled_input(true)
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_on_menu_pressed()
 
-func _on_prev_pressed() -> void:
-	confirm_prev.popup_centered()
 
-func _on_confirm_prev_confirmed() -> void:
-	if current_level > 0:
-		current_level -= 1
-		GameData.current_level_index = current_level
-		GameData.save_data()
-		_setup_game()
+# ------------------------------------------------------------------ setup --
 
-func _on_restart_pressed() -> void:
-	confirm_restart.popup_centered()
+func _start_level(animate: bool = true) -> void:
+	level = Levels.get_level(level_index)
+	par = Levels.par(level_index)
 
-func _on_confirm_restart_confirmed() -> void:
-	_setup_game()
+	GameData.last_level = level_index
+	GameData.save_data()
 
-func _on_settings_button_pressed() -> void:
-	settings_panel.visible = true
-	overlay_dim.visible = true
+	moves = 0
+	history.clear()
+	solved = false
+	input_locked = false
+	_selected = Vector2i(-1, -1)
+	_press_cell = Vector2i(-1, -1)
 
-func _on_close_button_pressed() -> void:
-	settings_panel.visible = false
-	overlay_dim.visible = false
+	board.build(level["size"], level["pattern"])
+	board.load_state(Levels.generate_start(level_index), animate)
 
-func _on_sound_check_toggled(toggled_on: bool) -> void:
-	if play_board:
-		play_board.is_muted = not toggled_on
+	level_label.text = "LEVEL %d" % (level_index + 1)
+	name_label.text = str(level["name"]).to_upper()
+	goal_view.pattern = level["pattern"]
+	goal_view.solved_cells = {}
 
-func _update_steps() -> void:
-	step_count += 1
-	steps_label.text = "Steps: %d" % step_count
+	win_panel.visible = false
+	dim.visible = false
+	toast.visible = false
 
-func _setup_game() -> void:
-	play_board.clear_balls()
-	target_board.clear_balls()
-	win_label.visible = false
-	
-	step_count = 0
-	steps_label.text = "Steps: 0"
-	# level_label.text = "Level: %d" % (current_level + 1) # Old label format
-	level_label.text = "Level %d" % (current_level + 1)
-	
-	# Update Next Button State
-	next_button_top.disabled = (current_level >= GameData.max_completed_level)
-	
-	var levels = [
-		{ # 1. Square (2 colors: 4, 2)
-			"name": "Square",
-			"pattern": [
-				[0, 0, 0, 0, 0, 0, 0],
-				[0, 4, 4, 4, 4, 4, 0],
-				[0, 4, 2, 2, 2, 4, 0],
-				[0, 4, 2, 2, 2, 4, 0],
-				[0, 4, 2, 2, 2, 4, 0],
-				[0, 4, 4, 4, 4, 4, 0],
-				[0, 0, 0, 0, 0, 0, 0]
-			]
-		},
-		{ # 2. Plus (2 colors: 4, 2)
-			"name": "Plus",
-			"pattern": [
-				[0, 0, 0, 4, 0, 0, 0],
-				[0, 0, 0, 4, 0, 0, 0],
-				[0, 0, 0, 2, 0, 0, 0],
-				[4, 4, 2, 2, 2, 4, 4],
-				[0, 0, 0, 2, 0, 0, 0],
-				[0, 0, 0, 4, 0, 0, 0],
-				[0, 0, 0, 4, 0, 0, 0]
-			]
-		},
-		{ # 3. Triangle (2 colors: 4, 1)
-			"name": "Triangle",
-			"pattern": [
-				[0, 0, 0, 4, 0, 0, 0],
-				[0, 0, 4, 1, 4, 0, 0],
-				[0, 0, 4, 1, 4, 0, 0],
-				[0, 4, 1, 1, 1, 4, 0],
-				[0, 4, 1, 1, 1, 4, 0],
-				[4, 4, 4, 4, 4, 4, 4],
-				[0, 0, 0, 0, 0, 0, 0]
-			]
-		},
-		{ # 4. X-Shape (2 colors: 4, 2)
-			"name": "X-Shape",
-			"pattern": [
-				[4, 0, 0, 0, 0, 0, 4],
-				[0, 4, 0, 0, 0, 4, 0],
-				[0, 0, 2, 0, 2, 0, 0],
-				[0, 0, 0, 2, 0, 0, 0],
-				[0, 0, 2, 0, 2, 0, 0],
-				[0, 4, 0, 0, 0, 4, 0],
-				[4, 0, 0, 0, 0, 0, 4]
-			]
-		},
-		{ # 5. Frame (2 colors: 4, 3)
-			"name": "Frame",
-			"pattern": [
-				[4, 4, 4, 4, 4, 4, 4],
-				[4, 3, 3, 3, 3, 3, 4],
-				[4, 3, 0, 0, 0, 3, 4],
-				[4, 3, 0, 0, 0, 3, 4],
-				[4, 3, 0, 0, 0, 3, 4],
-				[4, 3, 3, 3, 3, 3, 4],
-				[4, 4, 4, 4, 4, 4, 4]
-			]
-		},
-		{ # 6. Small Heart (3 colors: 2, 4, 1)
-			"name": "Small Heart",
-			"pattern": [
-				[0, 0, 0, 0, 0, 0, 0],
-				[0, 4, 4, 0, 4, 4, 0],
-				[4, 2, 2, 4, 2, 2, 4],
-				[4, 2, 2, 2, 2, 2, 4],
-				[0, 4, 2, 1, 2, 4, 0],
-				[0, 0, 4, 2, 4, 0, 0],
-				[0, 0, 0, 4, 0, 0, 0]
-			]
-		},
-		{ # 7. Arrow (3 colors: 2, 3, 4)
-			"name": "Arrow",
-			"pattern": [
-				[0, 0, 0, 2, 0, 0, 0],
-				[0, 0, 2, 3, 2, 0, 0],
-				[0, 2, 3, 3, 3, 2, 0],
-				[2, 2, 2, 3, 2, 2, 2],
-				[0, 0, 0, 3, 0, 0, 0],
-				[0, 0, 0, 3, 0, 0, 0],
-				[0, 0, 0, 4, 0, 0, 0]
-			]
-		},
-		{ # 8. Diamond (3 colors: 1, 2, 4)
-			"name": "Diamond",
-			"pattern": [
-				[0, 0, 0, 1, 0, 0, 0],
-				[0, 0, 1, 2, 1, 0, 0],
-				[0, 1, 2, 4, 2, 1, 0],
-				[1, 2, 4, 4, 4, 2, 1],
-				[0, 1, 2, 4, 2, 1, 0],
-				[0, 0, 1, 2, 1, 0, 0],
-				[0, 0, 0, 1, 0, 0, 0]
-			]
-		},
-		{ # 9. House (3 colors: 2, 4, 3)
-			"name": "House",
-			"pattern": [
-				[0, 0, 0, 2, 0, 0, 0],
-				[0, 0, 2, 2, 2, 0, 0],
-				[0, 2, 2, 2, 2, 2, 0],
-				[0, 4, 4, 4, 4, 4, 0],
-				[0, 4, 4, 3, 4, 4, 0],
-				[0, 4, 4, 3, 4, 4, 0],
-				[0, 0, 0, 0, 0, 0, 0]
-			]
-		},
-		{ # 10. Tree (3 colors: 1, 4, 2)
-			"name": "Tree",
-			"pattern": [
-				[0, 0, 0, 1, 0, 0, 0],
-				[0, 0, 1, 1, 1, 0, 0],
-				[0, 1, 1, 1, 1, 1, 0],
-				[1, 1, 1, 1, 1, 1, 1],
-				[0, 0, 0, 4, 0, 0, 0],
-				[0, 0, 0, 4, 0, 0, 0],
-				[0, 0, 2, 2, 2, 0, 0]
-			]
-		},
-		{ # 11. Star (4 colors: 4, 1, 2, 3)
-			"name": "Star",
-			"pattern": [
-				[0, 0, 0, 4, 0, 0, 0],
-				[1, 0, 4, 4, 4, 0, 3],
-				[0, 4, 4, 2, 4, 4, 0],
-				[4, 4, 2, 2, 2, 4, 4],
-				[0, 4, 4, 2, 4, 4, 0],
-				[1, 0, 4, 4, 4, 0, 3],
-				[0, 0, 0, 4, 0, 0, 0]
-			]
-		},
-		{ # 12. Boat (4 colors: 3, 4, 1, 2)
-			"name": "Boat",
-			"pattern": [
-				[0, 0, 0, 3, 0, 0, 0],
-				[0, 0, 3, 3, 0, 0, 0],
-				[0, 3, 3, 3, 0, 0, 0],
-				[0, 0, 0, 4, 0, 0, 0],
-				[1, 1, 1, 1, 1, 1, 1],
-				[0, 1, 1, 1, 1, 1, 0],
-				[2, 2, 2, 2, 2, 2, 2]
-			]
-		},
-		{ # 13. Face (4 colors: 4, 3, 2, 1)
-			"name": "Face",
-			"pattern": [
-				[0, 4, 4, 4, 4, 4, 0],
-				[4, 4, 4, 4, 4, 4, 4],
-				[4, 3, 4, 4, 4, 3, 4],
-				[4, 4, 4, 2, 4, 4, 4],
-				[4, 4, 1, 1, 1, 4, 4],
-				[4, 4, 4, 4, 4, 4, 4],
-				[0, 4, 4, 4, 4, 4, 0]
-			]
-		},
-		{ # 14. Flower (4 colors: 2, 4, 1, 3)
-			"name": "Flower",
-			"pattern": [
-				[0, 0, 4, 4, 4, 0, 0],
-				[0, 4, 1, 1, 1, 4, 0],
-				[4, 1, 2, 1, 1, 1, 4],
-				[4, 1, 1, 1, 1, 1, 4],
-				[0, 4, 1, 1, 1, 4, 0],
-				[0, 0, 0, 3, 0, 0, 0],
-				[0, 2, 2, 3, 2, 2, 0]
-			]
-		},
-		{ # 15. Butterfly (4 colors: 1, 2, 4, 3)
-			"name": "Butterfly",
-			"pattern": [
-				[1, 1, 0, 4, 0, 2, 2],
-				[1, 1, 1, 4, 2, 2, 2],
-				[1, 1, 1, 4, 2, 2, 2],
-				[0, 1, 1, 4, 2, 2, 0],
-				[3, 3, 3, 4, 3, 3, 3],
-				[3, 3, 3, 4, 3, 3, 3],
-				[0, 0, 0, 4, 0, 0, 0]
-			]
-		},
-		{ # 16. Rocket (4 colors: 3, 4, 2, 1)
-			"name": "Rocket",
-			"pattern": [
-				[0, 0, 0, 3, 0, 0, 0],
-				[0, 0, 3, 3, 3, 0, 0],
-				[0, 0, 4, 4, 4, 0, 0],
-				[0, 0, 4, 2, 4, 0, 0],
-				[0, 4, 4, 4, 4, 4, 0],
-				[4, 4, 4, 4, 4, 4, 4],
-				[0, 1, 0, 1, 0, 1, 0]
-			]
-		},
-		{ # 17. Sword (4 colors: 3, 4, 1, 2)
-			"name": "Sword",
-			"pattern": [
-				[0, 0, 0, 3, 0, 0, 0],
-				[0, 0, 3, 3, 3, 0, 0],
-				[0, 0, 3, 3, 3, 0, 0],
-				[0, 0, 3, 3, 3, 0, 0],
-				[0, 1, 1, 1, 1, 1, 0],
-				[0, 0, 0, 4, 0, 0, 0],
-				[0, 0, 2, 4, 2, 0, 0]
-			]
-		},
-		{ # 18. Shield (4 colors: 1, 4, 2, 3)
-			"name": "Shield",
-			"pattern": [
-				[1, 1, 1, 1, 1, 1, 1],
-				[1, 4, 4, 4, 4, 4, 1],
-				[1, 4, 2, 2, 2, 4, 1],
-				[1, 4, 2, 3, 2, 4, 1],
-				[0, 1, 4, 2, 4, 1, 0],
-				[0, 0, 1, 4, 1, 0, 0],
-				[0, 0, 0, 1, 0, 0, 0]
-			]
-		},
-		{ # 19. Crown (4 colors: 4, 1, 2, 3)
-			"name": "Crown",
-			"pattern": [
-				[4, 0, 4, 0, 4, 0, 4],
-				[4, 4, 4, 4, 4, 4, 4],
-				[4, 1, 4, 2, 4, 3, 4],
-				[4, 4, 4, 4, 4, 4, 4],
-				[4, 4, 4, 4, 4, 4, 4],
-				[0, 4, 4, 4, 4, 4, 0],
-				[0, 0, 0, 0, 0, 0, 0]
-			]
-		},
-		{ # 20. Complex Heart (4 colors: 2, 4, 1, 3)
-			"name": "Final Heart",
-			"pattern": [
-				[0, 4, 4, 0, 4, 4, 0],
-				[4, 2, 2, 4, 2, 2, 4],
-				[2, 2, 2, 2, 2, 2, 2],
-				[2, 2, 1, 3, 1, 2, 2],
-				[0, 2, 2, 1, 2, 2, 0],
-				[0, 0, 2, 2, 2, 0, 0],
-				[0, 0, 0, 2, 0, 0, 0]
-			]
-		}
-	]
-	
-	var level = levels[current_level % levels.size()]
-	var pattern_grid = level["pattern"]
-	print("Loading Level: ", level["name"])
-	
-	var balls_data = [] 
-	var all_positions = []
-	
-	for y in range(BOARD_SIZE):
-		for x in range(BOARD_SIZE):
-			var pos = Vector2i(x, y)
-			all_positions.append(pos)
-			
-			var color_code = pattern_grid[y][x]
-			if color_code != 0:
-				target_board.place_ball(pos, color_code)
-				balls_data.append(color_code)
-			# If 0, it's an empty hole in the target 
-			# (Wait, user said "start with 6 holes without balls" - usually implies Play board has holes.
-			#  Does target board also have holes? Yes, "match the upper board". 
-			#  So the Target board should effectively show where the holes go too?)
-			#  Yes, to match it perfectly, the holes must align.
-	
-	# 2. Scatter on Play Board (Deterministic)
-	# Use a seeded RNG to ensure the same level index always has the same starting layout
-	var rng = RandomNumberGenerator.new()
-	rng.seed = hash(current_level)
-	
-	var play_slots = all_positions.duplicate()
-	# Custom shuffle using our seeded RNG
-	for i in range(play_slots.size() - 1, 0, -1):
-		var j = rng.randi_range(0, i)
-		var temp = play_slots[i]
-		play_slots[i] = play_slots[j]
-		play_slots[j] = temp
-	
-	for color in balls_data:
-		if play_slots.is_empty():
-			break
-		var pos = play_slots.pop_back()
-		play_board.place_ball(pos, color)
+	_frame_camera()
+	_refresh_hud()
+	_maybe_onboard()
+
+
+## Fit the board to whatever viewport we actually got, and seat it low on the
+## screen so the HUD never sits on top of the puzzle.
+func _frame_camera() -> void:
+	var pitch := deg_to_rad(CAMERA_PITCH_DEG)
+	# Cell centres span (n-1) gaps; the extra covers the outer balls' radius
+	# plus a little breathing room at the edges.
+	var span: float = (board.grid_size - 1) * Board.SPACING + 1.3
+
+	var viewport_size := get_viewport().get_visible_rect().size
+	var aspect: float = viewport_size.x / maxf(viewport_size.y, 1.0)
+
+	# Vertical ortho extent needed to fit the board's width, and the extent
+	# needed to keep its foreshortened depth within its screen budget.
+	var for_width := span / maxf(aspect, 0.01)
+	var for_depth := (span * sin(pitch)) / BOARD_SCREEN_HEIGHT
+	camera.size = maxf(for_width, for_depth)
+
+	camera.position = Vector3(0.0, sin(pitch), cos(pitch)) * CAMERA_DISTANCE
+	camera.rotation = Vector3(-pitch, 0.0, 0.0)
+	# Slide the camera "up" the screen so the board settles below centre.
+	camera.position += camera.transform.basis.y * (camera.size * (BOARD_SCREEN_CENTRE - 0.5))
+
+
+func _apply_safe_area() -> void:
+	var safe := DisplayServer.get_display_safe_area()
+	var screen := DisplayServer.window_get_size()
+	if screen.y <= 0 or safe.size.y >= screen.y:
+		return
+	# Convert the device-pixel inset into our stretched viewport's units.
+	var scale := get_viewport().get_visible_rect().size.y / float(screen.y)
+	var inset := int(safe.position.y * scale)
+	top_margin.add_theme_constant_override("margin_top", 20 + inset)
+
+
+# ------------------------------------------------------------------ input --
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed:
-				_handle_touch_start(event.position)
-			else:
-				_handle_touch_end(event.position)
-
-func _handle_touch_start(screen_pos: Vector2) -> void:
-	var from = camera.project_ray_origin(screen_pos)
-	var to = from + camera.project_ray_normal(screen_pos) * 100
-	
-	var space_state = get_world_3d().direct_space_state
-	var query = PhysicsRayQueryParameters3D.create(from, to)
-	var result = space_state.intersect_ray(query)
-	
-	if result:
-		var collider = result.collider
-		# Check if it's a ball (Area3D) or Hole?
-		# My Ball is Area3D, but Board has Holes as StaticBody.
-		# If we hit a Ball (Area3D), we need to check collision mask/layer or parent
-		
-		# Let's assume we hit the Ball Area3D. Area3D doesn't block rays by default for intersect_ray unless verify.
-		# Actually, standard intersect_ray hits Bodies. Area3D requires intersect_point or special setup.
-		# Easier: User clicks ON THE BALL.
-		# The Ball script has an Area3D. I should probably use `_input_event` on the Area3D or switch Ball to StaticBody for Raycast.
-		# Let's rely on mapping world pos to grid pos for robustness.
-		
-		pass
-
-	# Alternative: GRID BASED CLICK
-	# Map world intersection to PlayBoard grid.
-	var grid_pos = _world_to_grid(result.position if result else Vector3.ZERO)
-	if grid_pos != Vector2i(-1, -1):
-		# Check if there is a ball there
-		if play_board.get_ball_at(grid_pos):
-			selected_ball_pos = grid_pos
-			drag_start_pos = screen_pos
-			is_dragging = true
-
-func _handle_touch_end(screen_pos: Vector2) -> void:
-	if is_dragging:
-		var drag_vec = screen_pos - drag_start_pos
-		if drag_vec.length() > 50: # Threshold
-			_try_move(selected_ball_pos, drag_vec)
-		
-		is_dragging = false
-		selected_ball_pos = Vector2i(-1, -1)
-
-func _try_move(from: Vector2i, drag_vec: Vector2) -> void:
-	var direction = Vector2i.ZERO
-	if abs(drag_vec.x) > abs(drag_vec.y):
-		direction = Vector2i.RIGHT if drag_vec.x > 0 else Vector2i.LEFT
-	else:
-		direction = Vector2i.DOWN if drag_vec.y > 0 else Vector2i.UP # Screen Y is down
-	
-	# Transform screen direction to grid direction?
-	# Assuming camera looks straight down or angled consistently.
-	# If Camera is rotated 45 deg, this might be tricky.
-	# Let's align camera with grid axes. Grid X is Right, Grid Z is Down (visually).
-	
-	var target = from + direction
-	
-	# Check bounds
-	if target.x < 0 or target.x >= BOARD_SIZE or target.y < 0 or target.y >= BOARD_SIZE:
-		play_board.animate_bounce(from, direction)
+	if input_locked or solved:
 		return
-	
-	# Check empty
-	if not play_board.get_ball_at(target):
-		play_board.move_ball(from, target)
-		_update_steps()
-		if not win_label.visible: # Only check if not already won
-			_check_win()
+
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_press(event.position)
+		else:
+			_release(event.position)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_press(event.position)
+		else:
+			_release(event.position)
+
+
+func _press(screen_pos: Vector2) -> void:
+	var cell := _cell_at(screen_pos)
+	if cell == Vector2i(-1, -1):
+		_deselect()
+		return
+
+	if board.ball_at(cell) != null:
+		_press_cell = cell
+		_press_screen = screen_pos
+		board.lift(cell, true)
+		return
+
+	# Tapped an empty socket: if a ball is selected next to it, that's a move.
+	if _selected != Vector2i(-1, -1) and _is_adjacent(_selected, cell):
+		var from := _selected
+		_deselect()
+		_do_move(from, cell)
 	else:
-		play_board.animate_bounce(from, direction)
+		_deselect()
+
+
+func _release(screen_pos: Vector2) -> void:
+	if _press_cell == Vector2i(-1, -1):
+		return
+
+	var cell := _press_cell
+	_press_cell = Vector2i(-1, -1)
+	if cell != _selected:
+		board.lift(cell, false)
+
+	var drag := screen_pos - _press_screen
+	if drag.length() >= DRAG_THRESHOLD:
+		_deselect()
+		_swipe(cell, drag)
+		return
+
+	# A tap. One free neighbour is unambiguous, so just go; otherwise select
+	# the ball and let the next tap pick the destination.
+	if _selected == cell:
+		_deselect()
+		return
+
+	var free := _free_neighbours(cell)
+	if free.size() == 1:
+		_deselect()
+		_do_move(cell, free[0])
+	elif free.is_empty():
+		board.bump(cell, Vector2i(0, -1))
+		Audio.play("bounce", 0.06)
+	else:
+		_select(cell)
+
+
+func _swipe(cell: Vector2i, drag: Vector2) -> void:
+	# The camera is pitched but never yawed, so screen axes map straight onto
+	# grid axes: right is +x, down the screen is +y.
+	var direction := Vector2i.RIGHT if drag.x > 0 else Vector2i.LEFT
+	if absf(drag.y) > absf(drag.x):
+		direction = Vector2i.DOWN if drag.y > 0 else Vector2i.UP
+	_do_move(cell, cell + direction)
+
+
+func _cell_at(screen_pos: Vector2) -> Vector2i:
+	var origin := camera.project_ray_origin(screen_pos)
+	var direction := camera.project_ray_normal(screen_pos)
+	var plane := Plane(Vector3.UP, board.global_position.y)
+	var hit = plane.intersects_ray(origin, direction)
+	if hit == null:
+		return Vector2i(-1, -1)
+	return board.world_to_cell(hit)
+
+
+func _select(cell: Vector2i) -> void:
+	if _selected != Vector2i(-1, -1):
+		board.lift(_selected, false)
+	_selected = cell
+	board.lift(cell, true)
+	Audio.play("ui")
+
+
+func _deselect() -> void:
+	if _selected != Vector2i(-1, -1):
+		board.lift(_selected, false)
+	_selected = Vector2i(-1, -1)
+
+
+func _is_adjacent(a: Vector2i, b: Vector2i) -> bool:
+	var d := a - b
+	return absi(d.x) + absi(d.y) == 1
+
+
+func _free_neighbours(cell: Vector2i) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for direction in DIRS:
+		var neighbour := cell + direction
+		if board.is_empty(neighbour):
+			out.append(neighbour)
+	return out
+
+
+# ------------------------------------------------------------------ moves --
+
+func _do_move(from: Vector2i, to: Vector2i, record: bool = true) -> void:
+	if board.ball_at(from) == null:
+		return
+
+	if not board.in_bounds(to) or not board.is_empty(to):
+		board.bump(from, to - from)
+		Audio.play("bounce", 0.06)
+		Audio.haptic(12)
+		return
+
+	board.move(from, to)
+	if record:
+		history.append({"from": from, "to": to})
+		moves += 1
+
+	Audio.play("move", 0.09)
+	Audio.haptic(10)
+	_after_board_change()
+
+
+func _on_undo_pressed() -> void:
+	if solved or history.is_empty():
+		return
+	var last: Dictionary = history.pop_back()
+	moves = maxi(0, moves - 1)
+	_deselect()
+	board.move(last["to"], last["from"])
+	Audio.play("ui")
+	_after_board_change(false)
+
+
+func _after_board_change(celebrate_locks: bool = true) -> void:
+	var newly := board.refresh_correct()
+	if celebrate_locks and not newly.is_empty():
+		for cell in newly:
+			var ball := board.ball_at(cell)
+			if ball:
+				board.flash(cell, Ball.color_for(ball.color_type))
+		Audio.play("lock", 0.04)
+
+	_refresh_hud()
+	_check_win()
+
+
+func _refresh_hud() -> void:
+	moves_label.text = "%d moves  ·  par %d" % [moves, par]
+	placed_label.text = "%d / %d in place" % [board.correct_count(), board.goal_ball_count()]
+	undo_button.disabled = history.is_empty() or solved
+
+	var solved_cells := {}
+	for y in board.grid_size:
+		for x in board.grid_size:
+			var cell := Vector2i(x, y)
+			var ball := board.ball_at(cell)
+			if ball and ball.is_correct():
+				solved_cells[cell] = true
+	goal_view.solved_cells = solved_cells
+
+
+# -------------------------------------------------------------------- win --
 
 func _check_win() -> void:
-	var state_play = play_board.get_state()
-	var state_target = target_board.get_state()
-	
-	if state_play == state_target:
-		win_label.visible = true
-		next_level_panel.visible = true
-		overlay_dim.visible = true
-		set_process_unhandled_input(false)
-		print("WIN!")
-		
-		# Save Progress
-		if current_level + 1 > GameData.max_completed_level:
-			GameData.max_completed_level = current_level + 1
-			GameData.save_data()
-			
-		# Enable Next Button
-		next_button_top.disabled = false
+	if solved:
+		return
+	if not Levels.grids_equal(board.get_state(), level["pattern"]):
+		return
 
-func _world_to_grid(world_pos: Vector3) -> Vector2i:
-	# Playboard is at (0,0,0) locally? Need to check scene setup.
-	# Assuming PlayBoard is at origin.
-	# Board spacing is 1.1.
-	
-	# Raycast hit might be slightly off.
-	# Inverse transform.
-	var local_pos = play_board.to_local(world_pos)
-	
-	# Adjust for center/offset if needed. Holes are at x*1.1, z*1.1
-	# Allow some tolerance.
-	var x = round(local_pos.x / 1.1)
-	var z = round(local_pos.z / 1.1)
-	
-	if x >= 0 and x < BOARD_SIZE and z >= 0 and z < BOARD_SIZE:
-		return Vector2i(int(x), int(z))
-	
-	return Vector2i(-1, -1)
+	solved = true
+	input_locked = true
+	_deselect()
+	_refresh_hud()  # re-run now that `solved` is set, so UNDO greys out
+
+	var earned := GameData.stars_for_moves(moves, par)
+	var previous_best := GameData.best_for(level_index)
+	GameData.record_result(level_index, moves, earned)
+
+	board.celebrate()
+	Audio.play("win")
+	Audio.haptic(40)
+
+	await get_tree().create_timer(0.85).timeout
+	if not is_inside_tree():
+		return
+
+	win_title.text = "SOLVED"
+	win_stars.earned = 0
+	win_stats.text = "%d moves   ·   par %d" % [moves, par]
+	if previous_best > 0:
+		win_stats.text += "\nbest %d" % mini(previous_best, moves)
+
+	next_button.disabled = false
+	next_button.text = "NEXT" if level_index + 1 < Levels.count() else "FINISH"
+
+	dim.visible = true
+	dim.modulate.a = 0.0
+	win_panel.visible = true
+	win_panel.pivot_offset = win_panel.size * 0.5
+	win_panel.scale = Vector2(0.85, 0.85)
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(dim, "modulate:a", 1.0, 0.2)
+	tween.tween_property(win_panel, "scale", Vector2.ONE, 0.35) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+	await get_tree().create_timer(0.3).timeout
+	if not is_inside_tree():
+		return
+	Audio.play_star_run(earned)
+	for i in earned:
+		win_stars.earned = i + 1
+		await get_tree().create_timer(0.18).timeout
+		if not is_inside_tree():
+			return
+
+
+# ------------------------------------------------------------------- hint --
+
+func _on_hint_pressed() -> void:
+	if solved:
+		return
+	Audio.play("ui")
+
+	var hint := _find_hint()
+	if hint.is_empty():
+		_show_toast("No obvious move — free up a socket first")
+		return
+
+	var from: Vector2i = hint[0]
+	var to: Vector2i = hint[1]
+	var ball := board.ball_at(from)
+	board.flash(from, Color(1, 1, 1, 0.9))
+	board.flash(to, Ball.color_for(ball.color_type) if ball else Color.WHITE)
+	_show_toast("Slide the highlighted ball")
+
+
+## Greedy one-ply hint. Not a solver — it just avoids the two obvious traps
+## (undoing a ball that is already home, and moving one further from where it
+## is needed).
+func _find_hint() -> Array:
+	var state := board.get_state()
+	var goal: Array = level["pattern"]
+	var best: Array = []
+	var best_score := -INF
+
+	for y in board.grid_size:
+		for x in board.grid_size:
+			if state[y][x] != 0:
+				continue
+			var hole := Vector2i(x, y)
+			for direction in DIRS:
+				var from := hole + direction
+				if not board.in_bounds(from):
+					continue
+				var color: int = state[from.y][from.x]
+				if color == 0:
+					continue
+
+				var score := 0.0
+				if goal[from.y][from.x] == color:
+					score -= 100.0  # already home, leave it alone
+				if goal[hole.y][hole.x] == color:
+					score += 100.0  # lands it home
+				else:
+					var before := _distance_to_need(state, goal, color, from)
+					var after := _distance_to_need(state, goal, color, hole)
+					score += (before - after) * 5.0
+
+				if score > best_score:
+					best_score = score
+					best = [from, hole]
+
+	if best_score <= 0.0:
+		return []
+	return best
+
+
+func _distance_to_need(state: Array, goal: Array, color: int, from: Vector2i) -> float:
+	var best := 99.0
+	for y in board.grid_size:
+		for x in board.grid_size:
+			if goal[y][x] != color:
+				continue
+			if state[y][x] == color:
+				continue  # some ball already satisfies this cell
+			best = minf(best, absi(x - from.x) + absi(y - from.y))
+	return best
+
+
+func _show_toast(message: String, hold: float = 1.6) -> void:
+	toast.text = message
+	toast.modulate.a = 0.0
+	toast.visible = true
+	if _toast_tween and _toast_tween.is_valid():
+		_toast_tween.kill()
+	_toast_tween = create_tween()
+	_toast_tween.tween_property(toast, "modulate:a", 1.0, 0.15)
+	_toast_tween.tween_interval(hold)
+	_toast_tween.tween_property(toast, "modulate:a", 0.0, 0.35)
+
+
+## First-run coaching, in place of a tutorial screen. Only ever shown to a
+## player who has not yet cleared level 1.
+func _maybe_onboard() -> void:
+	if level_index != 0 or GameData.stars_for(0) > 0:
+		return
+	_show_toast("Slide each ball onto a ring of its own colour", 3.4)
+	await get_tree().create_timer(4.2).timeout
+	if is_inside_tree() and not solved and moves == 0:
+		_show_toast("Tap a ball beside an empty ring to move it", 3.4)
+
+
+# ---------------------------------------------------------------- buttons --
+
+func _on_restart_pressed() -> void:
+	Audio.play("ui")
+	_start_level()
+
+
+func _on_menu_pressed() -> void:
+	Audio.play("ui")
+	get_tree().change_scene_to_file("res://scenes/level_select.tscn")
+
+
+func _on_next_pressed() -> void:
+	Audio.play("ui")
+	if level_index + 1 >= Levels.count():
+		get_tree().change_scene_to_file("res://scenes/level_select.tscn")
+		return
+	level_index += 1
+	_start_level()
+
+
+func _on_replay_pressed() -> void:
+	Audio.play("ui")
+	_start_level()
+
+
+func _on_levels_pressed() -> void:
+	Audio.play("ui")
+	get_tree().change_scene_to_file("res://scenes/level_select.tscn")

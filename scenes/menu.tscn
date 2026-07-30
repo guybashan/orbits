@@ -1,51 +1,16 @@
-[gd_scene load_steps=7 format=3 uid="uid://menuscene123"]
+[gd_scene load_steps=5 format=3 uid="uid://menuscene123"]
 
-[ext_resource type="Script" path="res://scripts/menu.gd" id="1_script"]
+[ext_resource type="Script" path="res://scripts/menu.gd" id="1_menu"]
+[ext_resource type="Script" path="res://scripts/orbit_backdrop.gd" id="2_backdrop"]
+[ext_resource type="Theme" uid="uid://orbitstheme01" path="res://scenes/ui_theme.tres" id="3_theme"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
-bg_color = Color(0.02, 0.05, 0.1, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
-bg_color = Color(0.18, 0.20, 0.25, 1.0)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.3, 0.35, 0.4, 1)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
-shadow_color = Color(0, 0, 0, 0.3)
-shadow_size = 5
-shadow_offset = Vector2(0, 3)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-bg_color = Color(0.25, 0.28, 0.35, 1.0)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.4, 0.45, 0.5, 1)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
-bg_color = Color(0.1, 0.12, 0.15, 1.0)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
-
-[sub_resource type="LabelSettings" id="LabelSettings_title"]
-font_size = 80
-font_color = Color(1, 1, 1, 1)
-outline_size = 10
-outline_color = Color(0.2, 0.5, 1.0, 0.5)
-shadow_size = 20
-shadow_color = Color(0, 0, 0, 0.5)
+[sub_resource type="LabelSettings" id="TitleSettings"]
+font_size = 84
+font_color = Color(0.93, 0.97, 1, 1)
+outline_size = 6
+outline_color = Color(0.18, 0.42, 0.9, 0.55)
+shadow_size = 26
+shadow_color = Color(0.11, 0.35, 0.9, 0.5)
 
 [node name="Menu" type="Control"]
 layout_mode = 3
@@ -54,18 +19,29 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_script")
+theme = ExtResource("3_theme")
+script = ExtResource("1_menu")
 
-[node name="Background" type="Panel" parent="."]
+[node name="BG" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
+color = Color(0.016, 0.027, 0.062, 1)
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="Backdrop" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_backdrop")
+
+[node name="Centre" type="CenterContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -73,39 +49,142 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBox" type="VBoxContainer" parent="CenterContainer"]
+[node name="VBox" type="VBoxContainer" parent="Centre"]
+custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
-theme_override_constants/separation = 60
-alignment = 1
+theme_override_constants/separation = 16
 
-[node name="Title" type="Label" parent="CenterContainer/VBox"]
+[node name="Title" type="Label" parent="Centre/VBox"]
 layout_mode = 2
 text = "ORBITS"
-label_settings = SubResource("LabelSettings_title")
+label_settings = SubResource("TitleSettings")
 horizontal_alignment = 1
-vertical_alignment = 1
 
-[node name="Spacer" type="Control" parent="CenterContainer/VBox"]
-custom_minimum_size = Vector2(0, 20)
+[node name="Subtitle" type="Label" parent="Centre/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.6, 0.8, 1)
+theme_override_font_sizes/font_size = 21
+text = "slide  ·  match  ·  solve"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Centre/VBox"]
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 
-[node name="PlayButton" type="Button" parent="CenterContainer/VBox"]
-custom_minimum_size = Vector2(250, 100)
+[node name="ContinueButton" type="Button" parent="Centre/VBox"]
+custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 26
+text = "CONTINUE"
+
+[node name="LevelsButton" type="Button" parent="Centre/VBox"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 26
+text = "LEVELS"
+
+[node name="SettingsButton" type="Button" parent="Centre/VBox"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 26
+text = "SETTINGS"
+
+[node name="StarsLabel" type="Label" parent="Centre/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.82, 0.29, 1)
+theme_override_font_sizes/font_size = 22
+text = "0 / 105 stars"
+horizontal_alignment = 1
+
+[node name="Dim" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.008, 0.012, 0.031, 0.72)
+
+[node name="SettingsPanel" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -250.0
+offset_right = 240.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="SettingsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="Header" type="Label" parent="SettingsPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.83, 1, 1)
 theme_override_font_sizes/font_size = 40
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "PLAY"
+text = "SETTINGS"
+horizontal_alignment = 1
 
-[node name="QuitButton" type="Button" parent="CenterContainer/VBox"]
-custom_minimum_size = Vector2(250, 100)
+[node name="SfxCheck" type="CheckButton" parent="SettingsPanel/VBox"]
+custom_minimum_size = Vector2(0, 62)
 layout_mode = 2
-theme_override_font_sizes/font_size = 40
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "QUIT"
+focus_mode = 0
+button_pressed = true
+text = "Sound effects"
 
-[connection signal="pressed" from="CenterContainer/VBox/PlayButton" to="." method="_on_play_pressed"]
-[connection signal="pressed" from="CenterContainer/VBox/QuitButton" to="." method="_on_quit_pressed"]
+[node name="MusicCheck" type="CheckButton" parent="SettingsPanel/VBox"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+focus_mode = 0
+button_pressed = true
+text = "Music"
+
+[node name="HapticsCheck" type="CheckButton" parent="SettingsPanel/VBox"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+focus_mode = 0
+button_pressed = true
+text = "Vibration"
+
+[node name="ResetButton" type="Button" parent="SettingsPanel/VBox"]
+custom_minimum_size = Vector2(0, 68)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(1, 0.45, 0.5, 1)
+theme_override_font_sizes/font_size = 22
+text = "RESET PROGRESS"
+
+[node name="CloseButton" type="Button" parent="SettingsPanel/VBox"]
+custom_minimum_size = Vector2(0, 74)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 24
+text = "CLOSE"
+
+[node name="ResetConfirm" type="ConfirmationDialog" parent="."]
+title = "Reset progress?"
+initial_position = 2
+size = Vector2i(460, 180)
+ok_button_text = "Reset"
+dialog_text = "This erases every star and unlock. It cannot be undone."
+
+[connection signal="pressed" from="Centre/VBox/ContinueButton" to="." method="_on_continue_pressed"]
+[connection signal="pressed" from="Centre/VBox/LevelsButton" to="." method="_on_levels_pressed"]
+[connection signal="pressed" from="Centre/VBox/SettingsButton" to="." method="_on_settings_pressed"]
+[connection signal="toggled" from="SettingsPanel/VBox/SfxCheck" to="." method="_on_sfx_toggled"]
+[connection signal="toggled" from="SettingsPanel/VBox/MusicCheck" to="." method="_on_music_toggled"]
+[connection signal="toggled" from="SettingsPanel/VBox/HapticsCheck" to="." method="_on_haptics_toggled"]
+[connection signal="pressed" from="SettingsPanel/VBox/ResetButton" to="." method="_on_reset_pressed"]
+[connection signal="pressed" from="SettingsPanel/VBox/CloseButton" to="." method="_on_close_settings_pressed"]
+[connection signal="confirmed" from="ResetConfirm" to="." method="_on_reset_confirmed"]

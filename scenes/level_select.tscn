@@ -1,0 +1,93 @@
+[gd_scene load_steps=4 format=3 uid="uid://levelselect123"]
+
+[ext_resource type="Script" path="res://scripts/level_select.gd" id="1_select"]
+[ext_resource type="Script" path="res://scripts/star_row.gd" id="2_star"]
+[ext_resource type="Theme" uid="uid://orbitstheme01" path="res://scenes/ui_theme.tres" id="3_theme"]
+
+[node name="LevelSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("3_theme")
+script = ExtResource("1_select")
+
+[node name="BG" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.016, 0.027, 0.062, 1)
+
+[node name="Header" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 118.0
+grow_horizontal = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+
+[node name="Row" type="HBoxContainer" parent="Header"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="BackButton" type="Button" parent="Header/Row"]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "BACK"
+
+[node name="Title" type="Label" parent="Header/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.55, 0.83, 1, 1)
+theme_override_font_sizes/font_size = 30
+text = "LEVELS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StarIcon" type="Control" parent="Header/Row"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("2_star")
+total = 1
+earned = 1
+
+[node name="StarsLabel" type="Label" parent="Header/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(1, 0.82, 0.29, 1)
+theme_override_font_sizes/font_size = 24
+text = "0 / 105"
+vertical_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 124.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="Grid" type="GridContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 4
+
+[connection signal="pressed" from="Header/Row/BackButton" to="." method="_on_back_pressed"]

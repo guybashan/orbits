@@ -1,323 +1,290 @@
-[gd_scene load_steps=6 format=3 uid="uid://mainscene123"]
+[gd_scene load_steps=8 format=3 uid="uid://mainscene123"]
 
-[ext_resource type="Script" path="res://scripts/game_main.gd" id="1_script"]
-[ext_resource type="PackedScene" uid="uid://boardscene123" path="res://scenes/board.tscn" id="2_board"]
+[ext_resource type="Script" path="res://scripts/game_main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/board.gd" id="2_board"]
+[ext_resource type="Script" path="res://scripts/goal_view.gd" id="3_goal"]
+[ext_resource type="Script" path="res://scripts/star_row.gd" id="4_star"]
+[ext_resource type="Theme" uid="uid://orbitstheme01" path="res://scenes/ui_theme.tres" id="5_theme"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
-sky_top_color = Color(0.02, 0.05, 0.1, 1)
-sky_horizon_color = Color(0.05, 0.08, 0.15, 1)
-ground_bottom_color = Color(0.01, 0.02, 0.05, 1)
-ground_horizon_color = Color(0.05, 0.08, 0.15, 1)
-
-[sub_resource type="Sky" id="Sky_1"]
-sky_material = SubResource("ProceduralSkyMaterial_1")
-
-[sub_resource type="Environment" id="Environment_1"]
-background_mode = 2
-background_energy_multiplier = 1.2
-sky = SubResource("Sky_1")
-tonemap_mode = 1
+[sub_resource type="Environment" id="Env_1"]
+background_mode = 1
+background_color = Color(0.008, 0.014, 0.036, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.4, 0.52, 0.82, 1)
+ambient_light_energy = 0.75
+tonemap_mode = 2
+tonemap_white = 1.8
 glow_enabled = true
-glow_intensity = 0.5
+glow_intensity = 0.42
 glow_strength = 1.0
-glow_bloom = 0.05
+glow_bloom = 0.08
 glow_blend_mode = 1
-glow_hdr_threshold = 1.1
-glow_hdr_scale = 1.0
-glow_high_quality = true
+glow_hdr_threshold = 1.05
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
-bg_color = Color(0.05, 0.1, 0.2, 0.7)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.1, 0.7, 1, 1)
-corner_radius_top_left = 40
-corner_radius_top_right = 40
-corner_radius_bottom_right = 40
-corner_radius_bottom_left = 40
-shadow_color = Color(0.1, 0.5, 1, 0.4)
-shadow_size = 12
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-bg_color = Color(0.1, 0.25, 0.45, 0.8)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.3, 0.9, 1, 1)
-corner_radius_top_left = 40
-corner_radius_top_right = 40
-corner_radius_bottom_right = 40
-corner_radius_bottom_left = 40
-shadow_color = Color(0.3, 0.8, 1, 0.5)
-shadow_size = 18
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
-bg_color = Color(0.02, 0.05, 0.1, 0.9)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.1, 0.5, 1, 1)
-corner_radius_top_left = 40
-corner_radius_top_right = 40
-corner_radius_bottom_right = 40
-corner_radius_bottom_left = 40
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.05, 0.07, 0.12, 0.85)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.2, 0.5, 1.0, 0.8)
-corner_radius_top_left = 30
-corner_radius_top_right = 30
-corner_radius_bottom_right = 30
-corner_radius_bottom_left = 30
-expand_margin_left = 15.0
-expand_margin_top = 15.0
-expand_margin_right = 15.0
-expand_margin_bottom = 15.0
-shadow_color = Color(0, 0, 0, 0.6)
-shadow_size = 30
+[sub_resource type="StyleBoxFlat" id="StatsCard"]
+content_margin_left = 20.0
+content_margin_top = 8.0
+content_margin_right = 20.0
+content_margin_bottom = 8.0
+bg_color = Color(0.043, 0.066, 0.13, 0.55)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
 
 [node name="Main" type="Node3D"]
-script = ExtResource("1_script")
+script = ExtResource("1_main")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_1")
+environment = SubResource("Env_1")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 10, 0)
-light_energy = 1.6
+[node name="KeyLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.86, -0.29, 0.42, 0, 0.82, 0.57, -0.51, -0.49, 0.71, 0, 12, 4)
+light_energy = 1.35
+light_specular = 0.6
 shadow_enabled = true
+shadow_bias = 0.04
+directional_shadow_max_distance = 40.0
+
+[node name="FillLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.71, 0.35, -0.61, 0, 0.87, 0.5, 0.71, 0.35, -0.61, 0, 8, -6)
+light_color = Color(0.55, 0.72, 1, 1)
+light_energy = 0.45
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 3.3, 20, 7.5)
+transform = Transform3D(1, 0, 0, 0, 0.485, 0.875, 0, -0.875, 0.485, 0, 29.7, 16.5)
 projection = 1
-size = 21.0
+size = 15.0
+near = 0.1
+far = 120.0
 current = true
 
-[node name="PlayBoard" parent="." instance=ExtResource("2_board")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8.5)
+[node name="Board" type="Node3D" parent="."]
+script = ExtResource("2_board")
 
-[node name="TargetBoard" parent="." instance=ExtResource("2_board")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+[node name="UI" type="CanvasLayer" parent="."]
 
-[node name="CanvasLayer" type="CanvasLayer" parent="."]
+[node name="Top" type="MarginContainer" parent="UI"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 110.0
+grow_horizontal = 2
+theme = ExtResource("5_theme")
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
 
-[node name="OverlayDim" type="ColorRect" parent="CanvasLayer"]
+[node name="Row" type="HBoxContainer" parent="UI/Top"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MenuButton" type="Button" parent="UI/Top/Row"]
+custom_minimum_size = Vector2(0, 74)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "MENU"
+
+[node name="Centre" type="VBoxContainer" parent="UI/Top/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 2
+
+[node name="LevelLabel" type="Label" parent="UI/Top/Row/Centre"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.83, 1, 1)
+theme_override_font_sizes/font_size = 30
+text = "LEVEL 1"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="UI/Top/Row/Centre"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.62, 0.78, 1)
+theme_override_font_sizes/font_size = 19
+text = "FIRST LIGHT"
+horizontal_alignment = 1
+
+[node name="Goal" type="Control" parent="UI/Top/Row"]
+custom_minimum_size = Vector2(78, 78)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("3_goal")
+
+[node name="Stats" type="MarginContainer" parent="UI"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 116.0
+offset_bottom = 172.0
+grow_horizontal = 2
+theme = ExtResource("5_theme")
+
+[node name="Row" type="HBoxContainer" parent="UI/Stats"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 10
+
+[node name="MovesLabel" type="Label" parent="UI/Stats/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "0 moves  ·  par 3"
+vertical_alignment = 1
+
+[node name="Sep" type="Label" parent="UI/Stats/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.36, 0.5, 1)
+theme_override_font_sizes/font_size = 22
+text = "|"
+vertical_alignment = 1
+
+[node name="PlacedLabel" type="Label" parent="UI/Stats/Row"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.83, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "0 / 4 in place"
+vertical_alignment = 1
+
+[node name="Toast" type="Label" parent="UI"]
+visible = false
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 186.0
+offset_bottom = 226.0
+grow_horizontal = 2
+theme = ExtResource("5_theme")
+theme_override_colors/font_color = Color(1, 0.85, 0.42, 1)
+theme_override_font_sizes/font_size = 21
+text = "Slide the highlighted ball"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Bottom" type="MarginContainer" parent="UI"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -128.0
+grow_horizontal = 2
+grow_vertical = 0
+theme = ExtResource("5_theme")
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 30
+
+[node name="Row" type="HBoxContainer" parent="UI/Bottom"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 14
+
+[node name="UndoButton" type="Button" parent="UI/Bottom/Row"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 24
+text = "UNDO"
+
+[node name="HintButton" type="Button" parent="UI/Bottom/Row"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 24
+text = "HINT"
+
+[node name="RestartButton" type="Button" parent="UI/Bottom/Row"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_override_font_sizes/font_size = 24
+text = "RESET"
+
+[node name="Dim" type="ColorRect" parent="UI"]
 visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.5)
+color = Color(0.008, 0.012, 0.031, 0.72)
 
-[node name="TopStats" type="HBoxContainer" parent="CanvasLayer"]
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 20.0
-offset_top = 30.0
-offset_right = -20.0
-offset_bottom = 110.0
+[node name="WinPanel" type="PanelContainer" parent="UI"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -190.0
+offset_right = 250.0
+offset_bottom = 190.0
 grow_horizontal = 2
-theme_override_constants/separation = 30
-alignment = 0
+grow_vertical = 2
+theme = ExtResource("5_theme")
 
-[node name="StepsLabel" type="Label" parent="CanvasLayer/TopStats"]
+[node name="VBox" type="VBoxContainer" parent="UI/WinPanel"]
 layout_mode = 2
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
-theme_override_constants/shadow_outline_size = 5
-theme_override_font_sizes/font_size = 32
-text = "Steps: 0"
-vertical_alignment = 1
+theme_override_constants/separation = 22
+alignment = 1
 
-[node name="PrevButton" type="Button" parent="CanvasLayer/TopStats"]
-custom_minimum_size = Vector2(80, 80)
+[node name="TitleLabel" type="Label" parent="UI/WinPanel/VBox"]
 layout_mode = 2
-mouse_default_cursor_shape = 2
-theme_override_font_sizes/font_size = 40
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-focus_mode = 0
-text = "<"
+theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 52
+text = "SOLVED"
+horizontal_alignment = 1
 
-[node name="RestartButton" type="Button" parent="CanvasLayer/TopStats"]
-custom_minimum_size = Vector2(80, 80)
+[node name="Stars" type="Control" parent="UI/WinPanel/VBox"]
+custom_minimum_size = Vector2(0, 62)
 layout_mode = 2
-mouse_default_cursor_shape = 2
-theme_override_font_sizes/font_size = 40
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-focus_mode = 0
-text = "R"
+mouse_filter = 2
+script = ExtResource("4_star")
 
-[node name="LevelLabel" type="Label" parent="CanvasLayer/TopStats"]
+[node name="StatsLabel" type="Label" parent="UI/WinPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.78, 0.92, 1)
+theme_override_font_sizes/font_size = 24
+text = "0 moves   ·   par 3"
+horizontal_alignment = 1
+
+[node name="Buttons" type="HBoxContainer" parent="UI/WinPanel/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="ReplayButton" type="Button" parent="UI/WinPanel/VBox/Buttons"]
+custom_minimum_size = Vector2(0, 74)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
-theme_override_constants/shadow_outline_size = 5
-theme_override_font_sizes/font_size = 36
-text = "Level 1"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="NextButton" type="Button" parent="CanvasLayer/TopStats"]
-custom_minimum_size = Vector2(80, 80)
-layout_mode = 2
-mouse_default_cursor_shape = 2
-theme_override_font_sizes/font_size = 40
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 focus_mode = 0
-text = ">"
+theme_override_font_sizes/font_size = 22
+text = "REPLAY"
 
-[node name="SettingsButton" type="Button" parent="CanvasLayer/TopStats"]
-custom_minimum_size = Vector2(80, 80)
+[node name="LevelsButton" type="Button" parent="UI/WinPanel/VBox/Buttons"]
+custom_minimum_size = Vector2(0, 74)
 layout_mode = 2
-mouse_default_cursor_shape = 2
-theme_override_font_sizes/font_size = 40
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+size_flags_horizontal = 3
 focus_mode = 0
-text = "⚙"
+theme_override_font_sizes/font_size = 22
+text = "LEVELS"
 
-[node name="WinLabel" type="Label" parent="CanvasLayer"]
-visible = false
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -180.0
-offset_right = 20.0
-offset_bottom = -110.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_color = Color(1, 0.9, 0, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 10
-theme_override_font_sizes/font_size = 64
-text = "YOU WIN!"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="NextLevelPanel" type="PanelContainer" parent="CanvasLayer"]
-visible = false
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -150.0
-offset_top = -50.0
-offset_right = 150.0
-offset_bottom = 50.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
-
-[node name="VBox" type="VBoxContainer" parent="CanvasLayer/NextLevelPanel"]
+[node name="NextButton" type="Button" parent="UI/WinPanel/VBox/Buttons"]
+custom_minimum_size = Vector2(0, 74)
 layout_mode = 2
-theme_override_constants/separation = 25
-alignment = 1
-
-[node name="Label" type="Label" parent="CanvasLayer/NextLevelPanel/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.843137, 0, 1)
-theme_override_font_sizes/font_size = 40
-text = "Level Complete!"
-horizontal_alignment = 1
-
-[node name="NextButton" type="Button" parent="CanvasLayer/NextLevelPanel/VBox"]
-custom_minimum_size = Vector2(0, 80)
-layout_mode = 2
-mouse_default_cursor_shape = 2
-theme_override_font_sizes/font_size = 32
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+size_flags_horizontal = 3
 focus_mode = 0
-text = "NEXT LEVEL"
+theme_override_font_sizes/font_size = 22
+text = "NEXT"
 
-[node name="SettingsPanel" type="PanelContainer" parent="CanvasLayer"]
-visible = false
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -150.0
-offset_right = 200.0
-offset_bottom = 150.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
-
-[node name="VBox" type="VBoxContainer" parent="CanvasLayer/SettingsPanel"]
-layout_mode = 2
-theme_override_constants/separation = 30
-alignment = 1
-
-[node name="Label" type="Label" parent="CanvasLayer/SettingsPanel/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 48
-text = "Settings"
-horizontal_alignment = 1
-
-[node name="SoundCheck" type="CheckButton" parent="CanvasLayer/SettingsPanel/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-button_pressed = true
-text = "Sound Effects"
-alignment = 1
-
-[node name="CloseButton" type="Button" parent="CanvasLayer/SettingsPanel/VBox"]
-custom_minimum_size = Vector2(0, 80)
-layout_mode = 2
-mouse_default_cursor_shape = 2
-theme_override_font_sizes/font_size = 32
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-focus_mode = 0
-text = "Close"
-
-[node name="ConfirmRestart" type="ConfirmationDialog" parent="CanvasLayer"]
-title = "Restart Level?"
-initial_position = 2
-size = Vector2i(400, 150)
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
-ok_button_text = "Yes"
-cancel_button_text = "No"
-dialog_text = "Are you sure you want to restart this level?"
-
-[node name="ConfirmPrev" type="ConfirmationDialog" parent="CanvasLayer"]
-title = "Previous Level?"
-initial_position = 2
-size = Vector2i(400, 150)
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
-ok_button_text = "Yes"
-cancel_button_text = "No"
-dialog_text = "Going back will reset the current level. Are you sure?"
-
-[connection signal="pressed" from="CanvasLayer/TopStats/PrevButton" to="." method="_on_prev_pressed"]
-[connection signal="pressed" from="CanvasLayer/TopStats/RestartButton" to="." method="_on_restart_pressed"]
-[connection signal="pressed" from="CanvasLayer/TopStats/NextButton" to="." method="_on_next_pressed"]
-[connection signal="pressed" from="CanvasLayer/TopStats/SettingsButton" to="." method="_on_settings_button_pressed"]
-[connection signal="confirmed" from="CanvasLayer/ConfirmRestart" to="." method="_on_confirm_restart_confirmed"]
-[connection signal="confirmed" from="CanvasLayer/ConfirmPrev" to="." method="_on_confirm_prev_confirmed"]
-[connection signal="pressed" from="CanvasLayer/NextLevelPanel/VBox/NextButton" to="." method="_on_next_level_pressed"]
-[connection signal="toggled" from="CanvasLayer/SettingsPanel/VBox/SoundCheck" to="." method="_on_sound_check_toggled"]
-[connection signal="pressed" from="CanvasLayer/SettingsPanel/VBox/CloseButton" to="." method="_on_close_button_pressed"]
+[connection signal="pressed" from="UI/Top/Row/MenuButton" to="." method="_on_menu_pressed"]
+[connection signal="pressed" from="UI/Bottom/Row/UndoButton" to="." method="_on_undo_pressed"]
+[connection signal="pressed" from="UI/Bottom/Row/HintButton" to="." method="_on_hint_pressed"]
+[connection signal="pressed" from="UI/Bottom/Row/RestartButton" to="." method="_on_restart_pressed"]
+[connection signal="pressed" from="UI/WinPanel/VBox/Buttons/ReplayButton" to="." method="_on_replay_pressed"]
+[connection signal="pressed" from="UI/WinPanel/VBox/Buttons/LevelsButton" to="." method="_on_levels_pressed"]
+[connection signal="pressed" from="UI/WinPanel/VBox/Buttons/NextButton" to="." method="_on_next_pressed"]
