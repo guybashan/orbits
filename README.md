@@ -84,6 +84,11 @@ A level keeps its best score, so replaying badly can never cost you rank.
 and time, bounded by the per-level maximum, never negative, and strictly
 increasing with difficulty.
 
+Links for the Play Console side: [PGS setup](https://developer.android.com/games/pgs/console/setup),
+[enabling testers](https://developer.android.com/games/pgs/test),
+[sign-in troubleshooting](https://developer.android.com/games/pgs/android/troubleshooting),
+and the [Godot 4 plugin](https://github.com/godot-sdk-integrations/godot-play-game-services).
+
 `scripts/leaderboard.gd` is the submission seam. It is a no-op unless Play
 Games Services is present and configured, so the game stays fully playable
 offline. Finishing it is Play Console work rather than code — the steps, and

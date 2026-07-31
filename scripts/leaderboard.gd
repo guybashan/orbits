@@ -8,6 +8,13 @@ extends Node
 ## Console side has not been set up. Nothing in the game may branch on whether
 ## a leaderboard exists — it either submits or it quietly doesn't.
 ##
+## LINKS
+##   Play Console                https://play.google.com/console
+##   PGS console setup           https://developer.android.com/games/pgs/console/setup
+##   Enabling testers            https://developer.android.com/games/pgs/test
+##   Troubleshooting sign-in     https://developer.android.com/games/pgs/android/troubleshooting
+##   Godot 4 plugin              https://github.com/godot-sdk-integrations/godot-play-game-services
+##
 ## TO FINISH THE INTEGRATION (all of this is Play Console work, not code):
 ##   1. Play Console -> Play Games Services -> set up a new game, link this app
 ##      (com.orbits.game).
@@ -15,6 +22,12 @@ extends Node
 ##      build is signed with. For internal testing that is the upload key made
 ##      by tools/make-upload-key.sh:
 ##        keytool -list -v -keystore <keystore> -alias <alias> | grep SHA1
+##      For the key built on 2026-08-01 that fingerprint is:
+##        11:20:25:6A:D3:D1:F4:8D:C8:F3:C4:F7:72:B2:F0:E5:75:4D:C9:77
+##      If you enable Play App Signing, Google re-signs the upload; the OAuth
+##      client must then use the APP SIGNING SHA-1 shown in Play Console, not
+##      this one. Getting this wrong is the usual cause of silent sign-in
+##      failure.
 ##   3. Create a leaderboard ("Total Score", higher is better, integer) and copy
 ##      its ID into LEADERBOARD_ID below.
 ##   4. Add your testers to the Play Games Services testers list — this is a
