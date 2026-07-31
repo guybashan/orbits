@@ -5,10 +5,12 @@ extends Node
 ## killed without warning.
 
 const SAVE_FILE := "user://orbits.save"
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
 
 var stars: Dictionary = {}       # level index (int) -> 0..3
 var best_moves: Dictionary = {}  # level index (int) -> best move count
+var best_times: Dictionary = {}  # level index (int) -> best time, seconds
+var best_scores: Dictionary = {} # level index (int) -> best ranked score
 var last_level: int = 0
 
 var sfx_enabled := true
@@ -71,16 +73,43 @@ static func stars_for_moves(moves: int, par: int) -> int:
 	return 1
 
 
-func record_result(index: int, moves: int, earned_stars: int) -> bool:
+func time_for(index: int) -> float:
+	return float(best_times.get(index, 0.0))
+
+
+func score_for(index: int) -> int:
+	return int(best_scores.get(index, 0))
+
+
+## The number submitted to the leaderboard: the sum of each level's best run.
+func total_score() -> int:
+	var sum := 0
+	for value in best_scores.values():
+		sum += int(value)
+	return sum
+
+
+func record_result(index: int, moves: int, earned_stars: int, seconds: float, score: int) -> bool:
 	var improved := false
 
 	if earned_stars > stars_for(index):
 		stars[index] = earned_stars
 		improved = true
 
-	var previous_best := best_for(index)
-	if previous_best == 0 or moves < previous_best:
+	var previous_moves := best_for(index)
+	if previous_moves == 0 or moves < previous_moves:
 		best_moves[index] = moves
+		improved = true
+
+	var previous_time := time_for(index)
+	if previous_time <= 0.0 or seconds < previous_time:
+		best_times[index] = seconds
+		improved = true
+
+	# Each level keeps its best score, so a bad replay can never cost a player
+	# rank they have already earned.
+	if score > score_for(index):
+		best_scores[index] = score
 		improved = true
 
 	save_data()
@@ -90,6 +119,8 @@ func record_result(index: int, moves: int, earned_stars: int) -> bool:
 func reset_progress() -> void:
 	stars.clear()
 	best_moves.clear()
+	best_times.clear()
+	best_scores.clear()
 	last_level = 0
 	save_data()
 
@@ -103,6 +134,8 @@ func save_data() -> void:
 		"version": SAVE_VERSION,
 		"stars": _int_keyed_to_string(stars),
 		"best_moves": _int_keyed_to_string(best_moves),
+		"best_times": _int_keyed_to_string(best_times),
+		"best_scores": _int_keyed_to_string(best_scores),
 		"last_level": last_level,
 		"sfx_enabled": sfx_enabled,
 		"music_enabled": music_enabled,
@@ -134,6 +167,8 @@ func load_data() -> void:
 	var data: Dictionary = json.data
 	stars = _string_keyed_to_int(data.get("stars", {}))
 	best_moves = _string_keyed_to_int(data.get("best_moves", {}))
+	best_times = _string_keyed_to_float(data.get("best_times", {}))
+	best_scores = _string_keyed_to_int(data.get("best_scores", {}))
 	last_level = int(data.get("last_level", 0))
 	sfx_enabled = bool(data.get("sfx_enabled", true))
 	music_enabled = bool(data.get("music_enabled", true))
@@ -153,4 +188,11 @@ func _string_keyed_to_int(source: Dictionary) -> Dictionary:
 	var out := {}
 	for key in source:
 		out[int(str(key))] = int(source[key])
+	return out
+
+
+func _string_keyed_to_float(source: Dictionary) -> Dictionary:
+	var out := {}
+	for key in source:
+		out[int(str(key))] = float(source[key])
 	return out

@@ -68,6 +68,29 @@ Boots the play screen, solves the level by replaying the shuffle backwards, and
 checks the win sequence, star award and save persistence. Pass a level index
 (0-based); add an output path to also save a screenshot.
 
+## Scoring and the leaderboard
+
+Each clear scores on two axes, both measured against par (see `scripts/score.gd`):
+
+- **moves** — full marks at or under par, decaying as you exceed it
+- **time** — full marks inside a budget of 4s per par move, decaying beyond it
+
+The total is weighted by par, so a good run on a hard level always beats a good
+run on an easy one. A perfect game is 248,666 points. The clock starts on the
+**first move**, not on load, so studying the board is free.
+
+A level keeps its best score, so replaying badly can never cost you rank.
+`tests/test_score.gd` pins the properties that matter: monotonic in both moves
+and time, bounded by the per-level maximum, never negative, and strictly
+increasing with difficulty.
+
+`scripts/leaderboard.gd` is the submission seam. It is a no-op unless Play
+Games Services is present and configured, so the game stays fully playable
+offline. Finishing it is Play Console work rather than code — the steps, and
+the one constant to fill in, are documented at the top of that file. Note that
+Play Games Services has its own tester list, separate from the internal-testing
+track, and sign-in fails silently for anyone not on it.
+
 ## Releasing to Play Console internal testing
 
 The export preset is configured for a Gradle build producing a signed `.aab`:

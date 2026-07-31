@@ -20,6 +20,7 @@ const DIRS: Array[Vector2i] = [
 @onready var level_label: Label = $UI/Top/Row/Centre/LevelLabel
 @onready var name_label: Label = $UI/Top/Row/Centre/NameLabel
 @onready var goal_view: GoalView = $UI/Top/Row/Goal
+@onready var time_label: Label = $UI/Stats/Row/TimeLabel
 @onready var moves_label: Label = $UI/Stats/Row/MovesLabel
 @onready var placed_label: Label = $UI/Stats/Row/PlacedLabel
 @onready var undo_button: Button = $UI/Bottom/Row/UndoButton
@@ -28,6 +29,7 @@ const DIRS: Array[Vector2i] = [
 @onready var win_panel: PanelContainer = $UI/WinPanel
 @onready var win_title: Label = $UI/WinPanel/VBox/TitleLabel
 @onready var win_stars: StarRow = $UI/WinPanel/VBox/Stars
+@onready var win_score: Label = $UI/WinPanel/VBox/ScoreLabel
 @onready var win_stats: Label = $UI/WinPanel/VBox/StatsLabel
 @onready var next_button: Button = $UI/WinPanel/VBox/Buttons/NextButton
 
@@ -36,6 +38,10 @@ var level: Dictionary = {}
 var par := 0
 
 var moves := 0
+## Wall-clock spent on this attempt. The clock only starts on the first move,
+## so studying the board before committing is free — otherwise scoring would
+## punish exactly the thinking the game is asking for.
+var elapsed := 0.0
 var history: Array = []            # [{from, to}] — for undo
 var solved := false
 var input_locked := false
@@ -54,6 +60,13 @@ func _ready() -> void:
 	_start_level()
 
 
+func _process(delta: float) -> void:
+	if solved or moves == 0:
+		return
+	elapsed += delta
+	time_label.text = Score.format_time(elapsed)
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		_on_menu_pressed()
@@ -69,6 +82,7 @@ func _start_level(animate: bool = true) -> void:
 	GameData.save_data()
 
 	moves = 0
+	elapsed = 0.0
 	history.clear()
 	solved = false
 	input_locked = false
@@ -291,8 +305,9 @@ func _after_board_change(celebrate_locks: bool = true) -> void:
 
 
 func _refresh_hud() -> void:
-	moves_label.text = "%d moves  ·  par %d" % [moves, par]
-	placed_label.text = "%d / %d in place" % [board.correct_count(), board.goal_ball_count()]
+	time_label.text = Score.format_time(elapsed)
+	moves_label.text = "%d / %d moves" % [moves, par]
+	placed_label.text = "%d / %d placed" % [board.correct_count(), board.goal_ball_count()]
 	undo_button.disabled = history.is_empty() or solved
 
 	var solved_cells := {}
@@ -320,7 +335,11 @@ func _check_win() -> void:
 
 	var earned := GameData.stars_for_moves(moves, par)
 	var previous_best := GameData.best_for(level_index)
-	GameData.record_result(level_index, moves, earned)
+	var previous_score := GameData.score_for(level_index)
+	var score := Score.for_level(moves, par, elapsed)
+	GameData.record_result(level_index, moves, earned, elapsed, score)
+	# No-op unless Play Games Services is configured; see leaderboard.gd.
+	Leaderboard.submit(GameData.total_score())
 
 	board.celebrate()
 	Audio.play("win")
@@ -334,9 +353,18 @@ func _check_win() -> void:
 
 	win_title.text = "SOLVED"
 	win_stars.earned = 0
-	win_stats.text = "%d moves   ·   par %d" % [moves, par]
+
+	var parts := Score.breakdown(moves, par, elapsed)
+	win_score.text = "%s pts" % _grouped(score)
+	if score > previous_score:
+		win_score.text += "   NEW BEST"
+
+	win_stats.text = "%d / %d moves  (%s pts)   ·   %s  (%s pts)" % [
+		moves, par, _grouped(parts["moves"]),
+		Score.format_time(elapsed), _grouped(parts["time"]),
+	]
 	if previous_best > 0:
-		win_stats.text += "\nbest %d" % mini(previous_best, moves)
+		win_stats.text += "\nfewest moves so far: %d" % mini(previous_best, moves)
 
 	next_button.disabled = false
 	next_button.text = "NEXT" if level_index + 1 < Levels.count() else "FINISH"
@@ -362,6 +390,17 @@ func _check_win() -> void:
 		await get_tree().create_timer(0.18).timeout
 		if not is_inside_tree():
 			return
+
+
+## Thousands separators — six-figure totals are unreadable without them.
+func _grouped(value: int) -> String:
+	var digits := str(absi(value))
+	var out := ""
+	for i in digits.length():
+		if i > 0 and (digits.length() - i) % 3 == 0:
+			out += ","
+		out += digits[i]
+	return ("-" if value < 0 else "") + out
 
 
 # ------------------------------------------------------------------- hint --

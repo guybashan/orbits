@@ -81,6 +81,19 @@ func _run() -> void:
 	if data.best_for(level_index) != main.moves:
 		failures.append("best move count was not persisted")
 
+	# --- scoring ------------------------------------------------------------
+	var expected: int = Score.for_level(main.moves, par, main.elapsed)
+	if data.score_for(level_index) != expected:
+		failures.append("score %d persisted, expected %d" % [data.score_for(level_index), expected])
+	if expected <= 0:
+		failures.append("a par clear scored %d points" % expected)
+	if expected > Score.best_possible(par):
+		failures.append("score %d exceeds the level maximum %d" % [expected, Score.best_possible(par)])
+	if main.elapsed <= 0.0:
+		failures.append("the clock never ran")
+	if data.time_for(level_index) != main.elapsed:
+		failures.append("best time was not persisted")
+
 	if out_path != "":
 		await RenderingServer.frame_post_draw
 		root.get_texture().get_image().save_png(out_path)
