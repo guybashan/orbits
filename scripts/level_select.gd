@@ -6,7 +6,15 @@ extends Control
 const COLUMNS := 4
 const SEPARATION := 14
 
+## Past this many pixels of movement a press is a scroll, not a tap, and the
+## card under the finger must not navigate.
+const DRAG_CANCEL := 12.0
+
+@onready var scroll: ScrollContainer = $Scroll
 @onready var grid: GridContainer = $Scroll/Grid
+
+var _drag_distance := 0.0
+var _is_scrolling := false
 @onready var stars_label: Label = $Header/Row/StarsLabel
 
 
@@ -22,6 +30,38 @@ func _ready() -> void:
 	_build_cards()
 	# Cards size themselves off the viewport, so rebuild on rotation/resize.
 	get_viewport().size_changed.connect(_build_cards)
+
+
+## Scrolling is driven here rather than left to ScrollContainer's built-in
+## touch handling. The grid is entirely covered by card Buttons, which consume
+## the touch before the container ever sees it — on device the list barely
+## moved. Handling it at the scene level means the gesture works no matter what
+## is under the finger.
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_drag_distance = 0.0
+			_is_scrolling = false
+		return
+
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_drag_distance = 0.0
+			_is_scrolling = false
+		return
+
+	var motion := 0.0
+	if event is InputEventScreenDrag:
+		motion = event.relative.y
+	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		motion = event.relative.y
+	else:
+		return
+
+	_drag_distance += absf(motion)
+	if _drag_distance >= DRAG_CANCEL:
+		_is_scrolling = true
+	scroll.scroll_vertical -= int(round(motion))
 
 
 func _notification(what: int) -> void:
@@ -93,6 +133,9 @@ func _make_card(index: int, card_size: float) -> Button:
 
 
 func _on_level_pressed(index: int) -> void:
+	# A press that ended a scroll must not also open a level.
+	if _is_scrolling:
+		return
 	Audio.play("ui")
 	GameData.last_level = index
 	GameData.save_data()
