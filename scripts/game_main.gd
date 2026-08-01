@@ -30,6 +30,11 @@ const DIRS: Array[Vector2i] = [
 @onready var win_title: Label = $UI/WinPanel/VBox/TitleLabel
 @onready var win_stars: StarRow = $UI/WinPanel/VBox/Stars
 @onready var win_score: Label = $UI/WinPanel/VBox/ScoreLabel
+@onready var win_best: Label = $UI/WinPanel/VBox/BestLabel
+@onready var win_moves_val: Label = $UI/WinPanel/VBox/Breakdown/MovesVal
+@onready var win_moves_pts: Label = $UI/WinPanel/VBox/Breakdown/MovesPts
+@onready var win_time_val: Label = $UI/WinPanel/VBox/Breakdown/TimeVal
+@onready var win_time_pts: Label = $UI/WinPanel/VBox/Breakdown/TimePts
 @onready var win_stats: Label = $UI/WinPanel/VBox/StatsLabel
 @onready var next_button: Button = $UI/WinPanel/VBox/Buttons/NextButton
 
@@ -356,15 +361,16 @@ func _check_win() -> void:
 
 	var parts := Score.breakdown(moves, par, elapsed)
 	win_score.text = "%s pts" % _grouped(score)
-	if score > previous_score:
-		win_score.text += "   NEW BEST"
+	win_best.visible = score > previous_score and previous_score > 0
 
-	win_stats.text = "%d / %d moves  (%s pts)   ·   %s  (%s pts)" % [
-		moves, par, _grouped(parts["moves"]),
-		Score.format_time(elapsed), _grouped(parts["time"]),
-	]
+	win_moves_val.text = "%d / %d" % [moves, par]
+	win_moves_pts.text = "+%s" % _grouped(parts["moves"])
+	win_time_val.text = Score.format_time(elapsed)
+	win_time_pts.text = "+%s" % _grouped(parts["time"])
+
+	win_stats.text = ""
 	if previous_best > 0:
-		win_stats.text += "\nfewest moves so far: %d" % mini(previous_best, moves)
+		win_stats.text = "best so far: %d moves" % mini(previous_best, moves)
 
 	next_button.disabled = false
 	next_button.text = "NEXT" if level_index + 1 < Levels.count() else "FINISH"

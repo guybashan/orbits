@@ -262,15 +262,70 @@ script = ExtResource("4_star")
 [node name="ScoreLabel" type="Label" parent="UI/WinPanel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.55, 0.83, 1, 1)
-theme_override_font_sizes/font_size = 40
-text = "+0"
+theme_override_font_sizes/font_size = 46
+text = "0 pts"
 horizontal_alignment = 1
+
+[node name="BestLabel" type="Label" parent="UI/WinPanel/VBox"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.82, 0.29, 1)
+theme_override_font_sizes/font_size = 20
+text = "NEW BEST"
+horizontal_alignment = 1
+
+[node name="Breakdown" type="GridContainer" parent="UI/WinPanel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/h_separation = 22
+theme_override_constants/v_separation = 6
+columns = 3
+
+[node name="MovesKey" type="Label" parent="UI/WinPanel/VBox/Breakdown"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.58, 0.74, 1)
+theme_override_font_sizes/font_size = 21
+text = "moves"
+
+[node name="MovesVal" type="Label" parent="UI/WinPanel/VBox/Breakdown"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 21
+text = "0 / 3"
+horizontal_alignment = 1
+
+[node name="MovesPts" type="Label" parent="UI/WinPanel/VBox/Breakdown"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.83, 1, 1)
+theme_override_font_sizes/font_size = 21
+text = "0"
+horizontal_alignment = 2
+
+[node name="TimeKey" type="Label" parent="UI/WinPanel/VBox/Breakdown"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.58, 0.74, 1)
+theme_override_font_sizes/font_size = 21
+text = "time"
+
+[node name="TimeVal" type="Label" parent="UI/WinPanel/VBox/Breakdown"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 21
+text = "0:00"
+horizontal_alignment = 1
+
+[node name="TimePts" type="Label" parent="UI/WinPanel/VBox/Breakdown"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.83, 1, 1)
+theme_override_font_sizes/font_size = 21
+text = "0"
+horizontal_alignment = 2
 
 [node name="StatsLabel" type="Label" parent="UI/WinPanel/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.78, 0.92, 1)
-theme_override_font_sizes/font_size = 24
-text = "0 moves   ·   par 3"
+theme_override_colors/font_color = Color(0.5, 0.58, 0.74, 1)
+theme_override_font_sizes/font_size = 19
+text = ""
 horizontal_alignment = 1
 
 [node name="Buttons" type="HBoxContainer" parent="UI/WinPanel/VBox"]
