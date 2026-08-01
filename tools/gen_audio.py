@@ -192,13 +192,39 @@ def make_bounce():
     return soft_clip((body * 0.85 + shaker(0.18, seed=5) * 0.10) * 0.8)
 
 
+def glass(freq, dur, sr=SR):
+    """
+    A soft glass/vibraphone tone: near-harmonic partials, gentle attack.
+
+    Deliberately *not* the inharmonic `bell` used for stars and wins — those
+    ratios (2.76, 5.40, 8.93) read as metallic, which is fine once at the end
+    of a level but fatiguing on a sound that fires twenty times a board.
+    """
+    n = int(sr * dur)
+    tt = t(dur, sr)
+    out = np.zeros(n)
+    for mult, amp, dec in ((1.00, 1.00, 0.40), (2.00, 0.32, 0.16),
+                           (3.00, 0.11, 0.09), (4.01, 0.05, 0.05)):
+        # 6ms attack rather than 1ms: takes the "tick" off the front.
+        out += amp * np.sin(2 * math.pi * freq * mult * tt) * env_ad(n, 0.006, dec * dur)
+    # A quiet sub-octave gives it body so it does not sound thin on a phone.
+    out += 0.18 * np.sin(2 * math.pi * freq * 0.5 * tt) * env_ad(n, 0.008, 0.18 * dur)
+    return out / 1.55
+
+
 def make_lock():
-    """A ball reaching its socket. Bright, clean, unmistakably positive."""
-    out = np.zeros(int(SR * 0.7))
-    add_at(out, bell(1318.51, 0.7) * 0.8, 0)            # E6
-    add_at(out, bell(1975.53, 0.55) * 0.35, 0)          # B6
-    add_at(out, pluck(659.25, 0.35, damping=0.990, seed=11) * 0.25, 0)
-    return soft_clip(reverb(out, mix=0.34) * 0.9)
+    """
+    A ball reaching its socket — the most-heard sound in the game.
+
+    Warm rather than bright: A5 fundamental instead of the old E6 bell, which
+    was piercing after a few placements. Playback pitches this up a pentatonic
+    ladder for consecutive placements (see Audio.play_lock), so a run of
+    correct moves turns into a phrase.
+    """
+    out = np.zeros(int(SR * 0.55))
+    add_at(out, glass(880.00, 0.55) * 0.85, 0)                     # A5
+    add_at(out, glass(1318.51, 0.34) * 0.22, int(0.012 * SR))      # E6, a touch late
+    return soft_clip(reverb(out, mix=0.26) * 0.82)
 
 
 def make_ui():

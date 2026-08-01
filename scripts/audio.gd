@@ -70,6 +70,27 @@ func play(name: String, pitch_variance: float = 0.0) -> void:
 	player.play()
 
 
+## Major pentatonic, in semitones. Every degree is consonant with every other,
+## so a run of placements sounds like a phrase no matter which order the player
+## fills the board in — there is no combination that can sour.
+const LOCK_LADDER := [0, 2, 4, 7, 9, 12, 14, 16]
+
+
+## A ball landing on its socket. `streak` is how many placements in a row the
+## player has made; the pitch climbs the ladder and wraps, turning a good run
+## into a rising figure instead of the same chime twenty times.
+func play_lock(streak: int) -> void:
+	if not GameData.sfx_enabled:
+		return
+	var semitones: int = LOCK_LADDER[maxi(streak, 0) % LOCK_LADDER.size()]
+	var player := _sfx_players[_next_player]
+	_next_player = (_next_player + 1) % _sfx_players.size()
+	player.stream = STREAMS["lock"]
+	player.volume_db = VOLUMES["lock"]
+	player.pitch_scale = pow(2.0, semitones / 12.0)
+	player.play()
+
+
 ## Plays a rising run of star chimes, one per star earned.
 func play_star_run(count: int) -> void:
 	for i in count:

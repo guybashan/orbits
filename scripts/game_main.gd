@@ -51,6 +51,10 @@ var history: Array = []            # [{from, to}] — for undo
 var solved := false
 var input_locked := false
 
+## Consecutive placements, for the rising lock melody. Reset by any move that
+## does not put a ball home, so the phrase tracks a genuine run.
+var _lock_streak := 0
+
 var _selected := Vector2i(-1, -1)
 var _press_cell := Vector2i(-1, -1)
 var _press_screen := Vector2.ZERO
@@ -88,6 +92,7 @@ func _start_level(animate: bool = true) -> void:
 
 	moves = 0
 	elapsed = 0.0
+	_lock_streak = 0
 	history.clear()
 	solved = false
 	input_locked = false
@@ -290,6 +295,7 @@ func _on_undo_pressed() -> void:
 		return
 	var last: Dictionary = history.pop_back()
 	moves = maxi(0, moves - 1)
+	_lock_streak = 0
 	_deselect()
 	board.move(last["to"], last["from"])
 	Audio.play("ui")
@@ -298,12 +304,16 @@ func _on_undo_pressed() -> void:
 
 func _after_board_change(celebrate_locks: bool = true) -> void:
 	var newly := board.refresh_correct()
-	if celebrate_locks and not newly.is_empty():
-		for cell in newly:
-			var ball := board.ball_at(cell)
-			if ball:
-				board.flash(cell, Ball.color_for(ball.color_type))
-		Audio.play("lock", 0.04)
+	if celebrate_locks:
+		if newly.is_empty():
+			_lock_streak = 0
+		else:
+			for cell in newly:
+				var ball := board.ball_at(cell)
+				if ball:
+					board.flash(cell, Ball.color_for(ball.color_type))
+			Audio.play_lock(_lock_streak)
+			_lock_streak += 1
 
 	_refresh_hud()
 	_check_win()
