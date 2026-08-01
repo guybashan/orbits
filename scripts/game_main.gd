@@ -17,6 +17,7 @@ const DIRS: Array[Vector2i] = [
 
 @onready var dim: ColorRect = $UI/Dim
 @onready var top_margin: MarginContainer = $UI/Top
+@onready var stats_margin: MarginContainer = $UI/Stats
 @onready var level_label: Label = $UI/Top/Row/Centre/LevelLabel
 @onready var name_label: Label = $UI/Top/Row/Centre/NameLabel
 @onready var goal_view: GoalView = $UI/Top/Row/Goal
@@ -146,8 +147,23 @@ func _apply_safe_area() -> void:
 		return
 	# Convert the device-pixel inset into our stretched viewport's units.
 	var scale := get_viewport().get_visible_rect().size.y / float(screen.y)
-	var inset := int(safe.position.y * scale)
+	_offset_top_ui(int(safe.position.y * scale))
+
+
+## Push the whole top stack down by `inset`.
+##
+## The top bar, the stats row and the toast are each anchored at fixed offsets,
+## so moving only the top bar drove the level name straight into the stats row
+## on any device with a notch or a tall status bar. They all move together.
+func _offset_top_ui(inset: int) -> void:
+	if inset <= 0:
+		return
 	top_margin.add_theme_constant_override("margin_top", 20 + inset)
+	top_margin.offset_bottom += inset
+	stats_margin.offset_top += inset
+	stats_margin.offset_bottom += inset
+	toast.offset_top += inset
+	toast.offset_bottom += inset
 
 
 # ------------------------------------------------------------------ input --
