@@ -75,8 +75,9 @@ Each clear scores on two axes, both measured against par (see `scripts/score.gd`
 - **moves** — full marks at or under par, decaying as you exceed it
 - **time** — full marks inside a budget of 4s per par move, decaying beyond it
 
-The total is weighted by par, so a good run on a hard level always beats a good
-run on an easy one. A perfect game is 248,666 points. The clock starts on the
+The total is weighted by the square root of par, so a good run on a hard level
+beats a good run on an easy one (~4x for the hardest) without the totals
+running away. A perfect game is 88,971 points. The clock starts on the
 **first move**, not on load, so studying the board is free.
 
 A level keeps its best score, so replaying badly can never cost you rank.

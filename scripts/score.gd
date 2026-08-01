@@ -21,7 +21,7 @@ const TIME_POINTS := 400.0
 ## Seconds of thinking time allowed per par move before the time bonus decays.
 const SECONDS_PER_PAR_MOVE := 4.0
 
-## Par of the easiest level, so level 1 has a difficulty weight of ~1.
+## Par of the easiest level, so level 1 has a difficulty weight of exactly 1.
 const DIFFICULTY_BASE := 3.0
 
 
@@ -42,8 +42,12 @@ static func time_ratio(seconds: float, par: int) -> float:
 	return clampf(budget / maxf(seconds, budget), 0.0, 1.0)
 
 
+## Square-rooted rather than linear. A linear weight made the last level worth
+## 16x the first, which pushed a perfect game past a quarter of a million
+## points — the totals stopped meaning anything. The root keeps hard levels
+## worth more (still ~4x) while the numbers stay readable.
 static func difficulty(par: int) -> float:
-	return float(par) / DIFFICULTY_BASE
+	return sqrt(float(par) / DIFFICULTY_BASE)
 
 
 static func for_level(moves: int, par: int, seconds: float) -> int:

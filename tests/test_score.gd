@@ -51,9 +51,16 @@ func _init() -> void:
 		"a par-50 level should be worth more than a par-3 level")
 
 	# A perfect run on every level should be a sane headline number.
+	# A perfect game should be a number a person can hold in their head. Linear
+	# difficulty weighting put this at 248,666, which is why it is now rooted.
 	var total := Score.best_possible_total()
-	check(total > 100000 and total < 1000000,
+	check(total > 20000 and total < 150000,
 		"total possible score %d is outside a readable range" % total)
+
+	# Hard levels must still pay meaningfully more, just not absurdly more.
+	var spread := float(Score.best_possible(50)) / float(Score.best_possible(3))
+	check(spread > 2.0 and spread < 6.0,
+		"hardest/easiest payout ratio is %.1fx, want roughly 4x" % spread)
 
 	# Degenerate inputs must not produce negative or absurd scores.
 	check(Score.for_level(0, par, budget) == 0, "zero moves should score zero")
