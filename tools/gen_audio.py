@@ -263,62 +263,90 @@ def make_win():
 
 
 # ------------------------------------------------------------------ music --
+#
+# Five tracks that escalate across the game rather than one loop forever.
+# They share a harmonic identity so switching never feels like a different
+# game, but tempo, density and harmony tighten as the boards get harder:
+# the last two move to a dominant E, which refuses to resolve and keeps the
+# loop leaning forward.
 
-BPM = 84.0
-BEAT = 60.0 / BPM
-BAR = BEAT * 4
-BARS = 8
+CALM = [                                                   # i - VI - III - VII
+    {"sub": 110.00, "pad": [220.00, 261.63, 329.63, 493.88]},   # Am9
+    {"sub": 87.31,  "pad": [174.61, 220.00, 261.63, 392.00]},   # Fmaj9
+    {"sub": 130.81, "pad": [196.00, 261.63, 329.63, 392.00]},   # Cmaj
+    {"sub": 98.00,  "pad": [196.00, 246.94, 293.66, 392.00]},   # G
+]
 
-# i - VI - III - VII in A minor: warm, resolved, and happy to loop forever.
-PROGRESSION = [
-    {"sub": 110.00, "pad": [220.00, 261.63, 329.63, 493.88], "arp": [220.00, 261.63, 329.63, 493.88]},  # Am9
-    {"sub": 87.31,  "pad": [174.61, 220.00, 261.63, 392.00], "arp": [174.61, 220.00, 261.63, 392.00]},  # Fmaj9
-    {"sub": 130.81, "pad": [196.00, 261.63, 329.63, 392.00], "arp": [196.00, 261.63, 329.63, 392.00]},  # Cmaj
-    {"sub": 98.00,  "pad": [196.00, 246.94, 293.66, 392.00], "arp": [196.00, 246.94, 293.66, 392.00]},  # G
+TENSE = [                                                  # i - VI - iv - V
+    {"sub": 110.00, "pad": [220.00, 261.63, 329.63, 493.88]},   # Am9
+    {"sub": 87.31,  "pad": [174.61, 220.00, 261.63, 349.23]},   # Fmaj7
+    {"sub": 146.83, "pad": [220.00, 293.66, 349.23, 440.00]},   # Dm
+    {"sub": 82.41,  "pad": [207.65, 246.94, 329.63, 415.30]},   # E7 (G#: unresolved)
+]
+
+TRACKS = [
+    # name,        bpm,  prog,  arp,  kick,        hats, lead, drone
+    ("music_1", 76.0,  CALM,  "quarter", (),          0.000, 0.00, 0.00),
+    ("music_2", 84.0,  CALM,  "eighth",  (0, 2),      0.016, 0.05, 0.00),
+    ("music_3", 92.0,  CALM,  "eighth",  (0, 1.5, 2), 0.024, 0.07, 0.05),
+    ("music_4", 100.0, TENSE, "busy",    (0, 1, 2, 3), 0.030, 0.09, 0.10),
+    ("music_5", 108.0, TENSE, "busy",    (0, 1, 2, 3), 0.038, 0.12, 0.18),
 ]
 
 
-def make_music():
-    total = BAR * BARS
-    n = int(SR * total)
-    track = np.zeros(n + SR)  # headroom for tails, trimmed at the end
-
+def make_track(bpm, prog, arp_mode, kick_beats, hat_level, lead_level, drone_level,
+               bars=8):
+    beat = 60.0 / bpm
+    bar = beat * 4
+    n = int(SR * bar * bars)
+    track = np.zeros(n + SR)
     seed = 0
-    for bar in range(BARS):
-        chord = PROGRESSION[(bar // 2) % len(PROGRESSION)]
-        bar_start = int(bar * BAR * SR)
 
-        add_at(track, sub(chord["sub"], BAR * 1.30) * 0.30, bar_start)
-        add_at(track, pad(chord["pad"], BAR * 1.90) * 0.15, bar_start)
+    for b in range(bars):
+        chord = prog[(b // 2) % len(prog)]
+        at = int(b * bar * SR)
 
-        # Eighth-note arpeggio, up then down, one octave up from the pad.
-        shape = [0, 1, 2, 3, 2, 1, 2, 3]
-        for step, degree in enumerate(shape):
+        add_at(track, sub(chord["sub"], bar * 1.30) * (0.30 + drone_level), at)
+        add_at(track, pad(chord["pad"], bar * 1.90) * 0.15, at)
+
+        if drone_level > 0.0:
+            # A low fifth under everything: pressure without more notes.
+            add_at(track, sub(chord["sub"] * 0.5, bar * 1.2) * drone_level * 0.7, at)
+
+        # Arpeggio: denser as the game gets harder.
+        if arp_mode == "quarter":
+            shape, step = [0, 2, 1, 3], beat
+        elif arp_mode == "eighth":
+            shape, step = [0, 1, 2, 3, 2, 1, 2, 3], beat / 2
+        else:
+            shape, step = [0, 1, 2, 3, 2, 3, 1, 2, 0, 1, 2, 3, 3, 2, 1, 0], beat / 4
+
+        for i, degree in enumerate(shape):
             seed += 1
-            freq = chord["arp"][degree] * 2.0
-            when = bar_start + int(step * (BEAT / 2) * SR)
-            accent = 0.115 if step % 2 == 0 else 0.075
-            add_at(track, pluck(freq, 0.85, damping=0.9945, seed=seed) * accent, when)
+            freq = chord["pad"][degree] * 2.0
+            accent = 0.115 if i % 2 == 0 else 0.075
+            add_at(track, pluck(freq, 0.85, damping=0.9945, seed=seed) * accent,
+                   at + int(i * step * SR))
 
-        # A single high bell every other bar, for movement over the loop.
-        if bar % 2 == 1:
-            note = chord["arp"][3] * 2.0
-            add_at(track, bell(note, 1.8) * 0.055, bar_start + int(BEAT * 2.5 * SR))
+        if lead_level > 0.0 and b % 2 == 1:
+            add_at(track, bell(chord["pad"][3] * 2.0, 1.8) * lead_level,
+                   at + int(beat * 2.5 * SR))
 
-        # Soft pulse: kick on 1 and 3, shaker on the off-beats.
-        for beat in (0, 2):
-            add_at(track, kick() * 0.30, bar_start + int(beat * BEAT * SR))
-        for eighth in range(8):
-            if eighth % 2 == 1:
+        for kb in kick_beats:
+            add_at(track, kick() * 0.30, at + int(kb * beat * SR))
+
+        if hat_level > 0.0:
+            divisions = 8 if arp_mode != "busy" else 16
+            for h in range(divisions):
+                if h % 2 == 0:
+                    continue
                 seed += 1
-                add_at(track, shaker(seed=seed) * 0.018,
-                       bar_start + int(eighth * (BEAT / 2) * SR))
+                add_at(track, shaker(seed=seed) * hat_level,
+                       at + int(h * (bar / divisions) * SR))
 
     track = reverb(track, mix=0.22, dur=1.8, decay=3.2)
     track = soft_clip(track * 1.05, 1.15)
 
-    # Wrap the tail that spilled past the loop point back over the head, so the
-    # reverb and ringing plucks carry across the seam instead of cutting dead.
     tail = track[n:]
     track = track[:n]
     track[: len(tail)] += tail
@@ -351,5 +379,6 @@ if __name__ == "__main__":
     write_wav("ui.wav", make_ui())
     write_wav("star.wav", make_star())
     write_wav("win.wav", make_win())
-    print("music:")
-    write_wav("music.wav", make_music())
+    print("music (5 escalating tracks):")
+    for name, bpm, prog, arp, kicks, hats, lead, drone in TRACKS:
+        write_wav(f"{name}.wav", make_track(bpm, prog, arp, kicks, hats, lead, drone))

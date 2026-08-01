@@ -27,9 +27,27 @@ const VOLUMES := {
 
 const MUSIC_VOLUME := -17.0
 
+## Five tracks, escalating. Which one plays is a function of how far through
+## the game the player is, so the score tightens as the boards do.
+const MUSIC_TRACKS := [
+	preload("res://sounds/music_1.wav"),
+	preload("res://sounds/music_2.wav"),
+	preload("res://sounds/music_3.wav"),
+	preload("res://sounds/music_4.wav"),
+	preload("res://sounds/music_5.wav"),
+]
+
+const MUSIC_CROSSFADE := 1.4
+const MUSIC_SILENT_DB := -40.0
+
 var _sfx_players: Array[AudioStreamPlayer] = []
 var _next_player := 0
-var _music_player: AudioStreamPlayer
+## Two players so tracks can cross-fade; a hard cut between pieces is jarring
+## right at the moment the player has just finished a level.
+var _music_players: Array[AudioStreamPlayer] = []
+var _active_music := 0
+var _current_track := -1
+var _fade: Tween
 
 
 func _ready() -> void:
@@ -40,18 +58,21 @@ func _ready() -> void:
 		add_child(player)
 		_sfx_players.append(player)
 
-	_music_player = AudioStreamPlayer.new()
-	var music: AudioStreamWAV = preload("res://sounds/music.wav")
-	music.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	music.loop_begin = 0
-	# Set the loop end explicitly in frames. Leaving it at 0 is not a reliable
-	# way to say "the end of the clip", and a wrong loop point is instantly
-	# audible on a track that repeats every 23 seconds.
-	var bytes_per_frame := 2 * (2 if music.stereo else 1)  # 16-bit samples
-	music.loop_end = music.data.size() / bytes_per_frame
-	_music_player.stream = music
-	_music_player.volume_db = MUSIC_VOLUME
-	add_child(_music_player)
+	for track in MUSIC_TRACKS:
+		var wav: AudioStreamWAV = track
+		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		wav.loop_begin = 0
+		# Loop end must be set explicitly in frames. Leaving it at 0 is not a
+		# reliable way to say "end of clip", and a wrong loop point is instantly
+		# audible on something that repeats every twenty seconds.
+		var bytes_per_frame := 2 * (2 if wav.stereo else 1)  # 16-bit samples
+		wav.loop_end = wav.data.size() / bytes_per_frame
+
+	for i in 2:
+		var player := AudioStreamPlayer.new()
+		player.volume_db = MUSIC_SILENT_DB
+		add_child(player)
+		_music_players.append(player)
 
 
 func play(name: String, pitch_variance: float = 0.0) -> void:
@@ -107,12 +128,59 @@ func play_star_run(count: int) -> void:
 		)
 
 
+## Pick the track for a level. Bands are proportional to the size of the level
+## bank, so adding levels re-spreads the escalation instead of leaving every
+## new level on the final track.
+func track_for_level(index: int) -> int:
+	var total: int = maxi(Levels.count(), 1)
+	var band := int(float(index) / float(total) * MUSIC_TRACKS.size())
+	return clampi(band, 0, MUSIC_TRACKS.size() - 1)
+
+
+func set_music_for_level(index: int) -> void:
+	play_track(track_for_level(index))
+
+
+func play_track(track: int) -> void:
+	track = clampi(track, 0, MUSIC_TRACKS.size() - 1)
+	if track == _current_track:
+		update_music()
+		return
+	_current_track = track
+
+	if not GameData.music_enabled:
+		return
+
+	var outgoing := _music_players[_active_music]
+	_active_music = 1 - _active_music
+	var incoming := _music_players[_active_music]
+
+	incoming.stream = MUSIC_TRACKS[track]
+	incoming.volume_db = MUSIC_SILENT_DB
+	incoming.play()
+
+	if _fade and _fade.is_valid():
+		_fade.kill()
+	_fade = create_tween()
+	_fade.set_parallel(true)
+	_fade.tween_property(incoming, "volume_db", MUSIC_VOLUME, MUSIC_CROSSFADE)
+	if outgoing.playing:
+		_fade.tween_property(outgoing, "volume_db", MUSIC_SILENT_DB, MUSIC_CROSSFADE)
+		_fade.chain().tween_callback(outgoing.stop)
+
+
 func update_music() -> void:
+	var player := _music_players[_active_music]
 	if GameData.music_enabled:
-		if not _music_player.playing:
-			_music_player.play()
-	elif _music_player.playing:
-		_music_player.stop()
+		if _current_track < 0:
+			_current_track = 0
+		if not player.playing:
+			player.stream = MUSIC_TRACKS[_current_track]
+			player.volume_db = MUSIC_VOLUME
+			player.play()
+	else:
+		for p in _music_players:
+			p.stop()
 
 
 func haptic(milliseconds: int = 18) -> void:

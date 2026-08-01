@@ -64,7 +64,7 @@ var _toast_tween: Tween
 
 func _ready() -> void:
 	level_index = clampi(GameData.last_level, 0, Levels.count() - 1)
-	Audio.update_music()
+	Audio.set_music_for_level(level_index)
 	_apply_safe_area()
 	get_viewport().size_changed.connect(_frame_camera)
 	_start_level()
@@ -100,6 +100,7 @@ func _start_level(animate: bool = true) -> void:
 	_selected = Vector2i(-1, -1)
 	_press_cell = Vector2i(-1, -1)
 
+	Audio.set_music_for_level(level_index)
 	board.build(level["size"], level["pattern"])
 	board.load_state(Levels.generate_start(level_index), animate)
 
