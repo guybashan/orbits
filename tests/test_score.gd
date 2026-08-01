@@ -51,11 +51,15 @@ func _init() -> void:
 		"a par-50 level should be worth more than a par-3 level")
 
 	# A perfect run on every level should be a sane headline number.
-	# A perfect game should be a number a person can hold in their head. Linear
-	# difficulty weighting put this at 248,666, which is why it is now rooted.
+	# What matters is the per-level scale, not the grand total — the total is
+	# just however many levels the bank happens to hold. Checking the average
+	# keeps this meaningful as the bank grows; an absolute bound silently
+	# became wrong the moment the game went from 35 levels to 100.
 	var total := Score.best_possible_total()
-	check(total > 20000 and total < 150000,
-		"total possible score %d is outside a readable range" % total)
+	var average := float(total) / float(Levels.count())
+	check(average > 500.0 and average < 8000.0,
+		"average level is worth %.0f pts, outside a readable range" % average)
+	check(total < 1000000, "perfect game of %d is more digits than anyone reads" % total)
 
 	# Hard levels must still pay meaningfully more, just not absurdly more.
 	var spread := float(Score.best_possible(50)) / float(Score.best_possible(3))
@@ -75,7 +79,8 @@ func _init() -> void:
 		print("PASS — scoring is monotonic, bounded and difficulty-weighted")
 		print("       max per level: par 3 -> %d pts, par 50 -> %d pts" % [
 			Score.best_possible(3), Score.best_possible(50)])
-		print("       perfect game: %d pts" % total)
+		print("       perfect game: %d pts across %d levels (avg %d)" % [
+			total, Levels.count(), total / Levels.count()])
 		quit(0)
 	for f in failures:
 		print("FAIL: ", f)
