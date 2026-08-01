@@ -17,7 +17,7 @@ extends Node
 ##
 ## TO FINISH THE INTEGRATION (all of this is Play Console work, not code):
 ##   1. Play Console -> Play Games Services -> set up a new game, link this app
-##      (com.metatools.orbits).
+##      (com.guybashan.orbits).
 ##   2. Add an OAuth2 credential for the app; it needs the SHA-1 of the key the
 ##      build is signed with. For internal testing that is the upload key made
 ##      by tools/make-upload-key.sh:
