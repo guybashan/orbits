@@ -1,166 +1,130 @@
 #!/usr/bin/env python3
-"""Generate the Orbits icon set: shaded orbs on rings, matching the game."""
+"""
+Generate the Orbits icon set.
+
+Flat, geometric, white ground — the shape language Android launchers expect.
+The mark is the game's central verb reduced to two elements: a socket, and the
+ball seated in it. The socket is left open on one side, which keeps it from
+reading as a generic record/target symbol and hints at the direction the ball
+slid in from.
+
+No gradients, glows or 3D shading: those collapse into mush at 48px, which is
+the size that actually decides whether an icon works.
+
+Everything renders at 8x and downsamples, so the curves stay clean.
+"""
+import math
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
-OUT = Path("/Users/columbo/dev/godot-orbits/assets/icons")
-SS = 4  # supersample factor
+OUT = Path(__file__).resolve().parent.parent / "assets" / "icons"
+SS = 8  # supersample factor; flat art needs more than shaded art
 
-PALETTE = {
-    "coral": (1.00, 0.35, 0.42),
-    "mint": (0.24, 0.85, 0.70),
-    "azure": (0.34, 0.60, 1.00),
-    "amber": (1.00, 0.76, 0.24),
-}
+CORAL = (0.98, 0.30, 0.36)
+WHITE = (1.0, 1.0, 1.0)
 
-LIGHT = np.array([-0.42, -0.58, 0.70])
-LIGHT /= np.linalg.norm(LIGHT)
+RING_RADIUS = 0.300
+RING_WIDTH = 0.078
+BALL_RADIUS = 0.150
 
-
-def new_canvas(size):
-    """RGBA float canvas."""
-    return np.zeros((size, size, 4), dtype=np.float64)
+# The socket opens toward the upper left — the direction the ball came from.
+GAP_CENTRE_DEG = -132.0
+GAP_WIDTH_DEG = 46.0
 
 
-def composite(dst, src_rgb, src_a):
-    """Standard source-over onto a premultiplied-by-alpha float canvas."""
-    a = src_a[..., None]
-    dst[..., :3] = src_rgb * a + dst[..., :3] * (1 - a)
-    dst[..., 3] = src_a + dst[..., 3] * (1 - src_a)
+def canvas(size, opaque_white=False):
+    dst = np.zeros((size, size, 4), dtype=np.float64)
+    if opaque_white:
+        dst[..., :3] = 1.0
+        dst[..., 3] = 1.0
+    return dst
 
 
-def grid(size, cx, cy, r):
+def coords(size):
     yy, xx = np.mgrid[0:size, 0:size].astype(np.float64)
-    return (xx - cx) / r, (yy - cy) / r
+    return xx, yy
 
 
-def draw_orb(canvas, cx, cy, r, color):
-    """A shaded sphere: diffuse term, tight specular, and a rim light."""
-    size = canvas.shape[0]
-    dx, dy = grid(size, cx, cy, r)
-    d2 = dx * dx + dy * dy
-    inside = d2 <= 1.0
-
-    nz = np.sqrt(np.clip(1.0 - d2, 0.0, 1.0))
-    ndl = np.clip(dx * LIGHT[0] + dy * LIGHT[1] + nz * LIGHT[2], 0.0, 1.0)
-
-    base = np.array(color)
-    diffuse = 0.28 + 0.80 * ndl
-    rim = (1.0 - nz) ** 3 * 0.40
-    spec = ndl ** 34 * 1.05
-
-    rgb = base[None, None, :] * (diffuse + rim)[..., None] + spec[..., None]
-    rgb = np.clip(rgb, 0.0, 1.0)
-
-    alpha = inside.astype(np.float64)
-    composite(canvas, rgb, alpha)
-
-
-def draw_ring(canvas, cx, cy, r, thickness, color, energy=1.0):
-    size = canvas.shape[0]
-    dx, dy = grid(size, cx, cy, r)
-    d = np.sqrt(dx * dx + dy * dy)
-    half = thickness / (2.0 * r)
-    band = np.abs(d - 1.0) <= half
-
-    rgb = np.zeros((size, size, 3))
-    rgb[..., :] = np.array(color) * energy
-    composite(canvas, np.clip(rgb, 0, 1), band.astype(np.float64))
-
-
-def draw_glow(canvas, cx, cy, r, color, strength=0.5):
-    size = canvas.shape[0]
-    dx, dy = grid(size, cx, cy, r)
-    d = np.sqrt(dx * dx + dy * dy)
-    falloff = np.clip(1.0 - d, 0.0, 1.0) ** 2.6 * strength
-
-    rgb = np.zeros((size, size, 3))
+def composite(dst, color, alpha):
+    rgb = np.empty(dst.shape[:2] + (3,))
     rgb[..., :] = np.array(color)
-    composite(canvas, rgb, falloff)
+    a = alpha[..., None]
+    dst[..., :3] = rgb * a + dst[..., :3] * (1.0 - a)
+    dst[..., 3] = alpha + dst[..., 3] * (1.0 - alpha)
 
 
-def cluster(canvas, size, scale=1.0, centre=0.5):
-    """The 2x2 motif: three balls home, one ring still waiting."""
-    c = size * centre
-    step = size * 0.215 * scale
-    r_orb = size * 0.098 * scale
-    r_ring = size * 0.125 * scale
-
-    cells = [
-        (-1, -1, "coral"),
-        (+1, -1, "mint"),
-        (-1, +1, "amber"),
-        (+1, +1, "azure"),
-    ]
-
-    # Rings first, so the orbs sit on top of them.
-    for gx, gy, name in cells:
-        x, y = c + gx * step, c + gy * step
-        col = PALETTE[name]
-        draw_glow(canvas, x, y, r_ring * 2.3, col, 0.22)
-        draw_ring(canvas, x, y, r_ring, size * 0.026 * scale, col, 1.0)
-
-    for gx, gy, name in cells:
-        # Bottom-right stays empty: that is the puzzle, in one glance.
-        if (gx, gy) == (+1, +1):
-            continue
-        x, y = c + gx * step, c + gy * step
-        draw_orb(canvas, x, y, r_orb, PALETTE[name])
+def disc(dst, size, cx, cy, r, color):
+    xx, yy = coords(size)
+    d = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
+    composite(dst, color, (d <= r).astype(np.float64))
 
 
-def background(canvas, size):
-    """Deep navy with a soft radial lift toward the centre."""
-    yy, xx = np.mgrid[0:size, 0:size].astype(np.float64)
-    dx = (xx - size / 2) / (size / 2)
-    dy = (yy - size / 2) / (size / 2)
-    d = np.clip(np.sqrt(dx * dx + dy * dy) / 1.414, 0, 1)
+def open_ring(dst, size, cx, cy, radius, width, color,
+              gap_centre_deg=None, gap_width_deg=0.0):
+    """A stroked circle, optionally with an arc removed and rounded ends."""
+    xx, yy = coords(size)
+    px, py = xx - cx, yy - cy
+    d = np.sqrt(px * px + py * py)
+    band = np.abs(d - radius) <= width * 0.5
 
-    deep = np.array([0.012, 0.020, 0.055])
-    lift = np.array([0.055, 0.090, 0.205])
-    rgb = lift[None, None, :] * (1 - d)[..., None] ** 1.6 + deep[None, None, :]
-    canvas[..., :3] = np.clip(rgb, 0, 1)
-    canvas[..., 3] = 1.0
+    if gap_centre_deg is not None and gap_width_deg > 0.0:
+        angle = np.arctan2(py, px)
+        delta = np.abs(np.arctan2(
+            np.sin(angle - math.radians(gap_centre_deg)),
+            np.cos(angle - math.radians(gap_centre_deg)),
+        ))
+        band = band & (delta > math.radians(gap_width_deg * 0.5))
+
+    composite(dst, color, band.astype(np.float64))
+
+    # Round the cut ends so the stroke terminates cleanly rather than square.
+    if gap_centre_deg is not None and gap_width_deg > 0.0:
+        for sign in (-1.0, 1.0):
+            a = math.radians(gap_centre_deg + sign * gap_width_deg * 0.5)
+            disc(dst, size, cx + radius * math.cos(a), cy + radius * math.sin(a),
+                 width * 0.5, color)
 
 
-def save(canvas, path, size):
-    img = np.clip(canvas, 0.0, 1.0)
-    # Un-premultiply is unnecessary: composite() keeps colour straight.
-    arr = (img * 255.0 + 0.5).astype(np.uint8)
-    image = Image.fromarray(arr, mode="RGBA").resize((size, size), Image.LANCZOS)
-    image.save(path)
-    print(f"{path.name}: {size}x{size}  {path.stat().st_size / 1024:.1f} KB")
+def scene(dst, size, scale=1.0):
+    c = size * 0.5
+    open_ring(dst, size, c, c,
+              size * RING_RADIUS * scale, size * RING_WIDTH * scale, CORAL,
+              GAP_CENTRE_DEG, GAP_WIDTH_DEG)
+    disc(dst, size, c, c, size * BALL_RADIUS * scale, CORAL)
 
 
-def render(size, *, with_bg, scale=1.0, out=None):
+def save(dst, path, size):
+    arr = (np.clip(dst, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)
+    Image.fromarray(arr, mode="RGBA").resize((size, size), Image.LANCZOS).save(path)
+    print(f"  {path.name:<34} {size}x{size}  {path.stat().st_size / 1024:6.1f} KB")
+
+
+def render(size, out, *, white_bg=True, scale=1.0):
     big = size * SS
-    canvas = new_canvas(big)
-    if with_bg:
-        background(canvas, big)
-    cluster(canvas, big, scale=scale)
-    save(canvas, out, size)
+    dst = canvas(big, opaque_white=white_bg)
+    scene(dst, big, scale=scale)
+    save(dst, out, size)
 
 
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
 
-    # Full-bleed icons (Play Store listing, in-engine window icon).
-    render(512, with_bg=True, out=OUT / "icon_512.png")
-    render(1024, with_bg=True, out=OUT / "icon_1024.png")
+    render(512, OUT / "icon_512.png")
+    render(1024, OUT / "icon_1024.png")
+    render(192, OUT / "launcher_192.png")
 
-    # Android legacy launcher icon.
-    render(192, with_bg=True, out=OUT / "launcher_192.png")
+    # Adaptive foreground is masked to the inner ~66%, so the mark shrinks to
+    # survive a circle crop on every launcher shape.
+    render(432, OUT / "adaptive_foreground_432.png", white_bg=False, scale=0.66)
 
-    # Adaptive icon: the foreground must survive a 66% mask crop, so the
-    # motif is scaled down to sit inside the safe zone.
-    render(432, with_bg=False, scale=0.62, out=OUT / "adaptive_foreground_432.png")
-
-    bg = new_canvas(432 * SS)
-    background(bg, 432 * SS)
+    bg = canvas(432 * SS, opaque_white=True)
     save(bg, OUT / "adaptive_background_432.png", 432)
 
-    mono = new_canvas(432 * SS)
-    cluster(mono, 432 * SS, scale=0.62)
-    mono[..., :3] = 1.0  # themed icons are tinted by the launcher
+    # Themed icons are tinted by the launcher, so the mark is drawn in solid
+    # white on transparent and the system recolours it.
+    mono = canvas(432 * SS)
+    scene(mono, 432 * SS, scale=0.66)
+    mono[..., :3] = 1.0
     save(mono, OUT / "adaptive_monochrome_432.png", 432)
