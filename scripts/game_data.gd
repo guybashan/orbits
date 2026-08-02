@@ -5,7 +5,11 @@ extends Node
 ## killed without warning.
 
 const SAVE_FILE := "user://orbits.save"
-const SAVE_VERSION := 3
+## Bumped whenever the level bank changes identity. Progress is keyed by level
+## index, so when the patterns behind those indices change, old stars describe
+## boards that no longer exist — they would show as cleared levels the player
+## has never seen, with the unlock chain opening in the wrong places.
+const SAVE_VERSION := 4
 
 var stars: Dictionary = {}       # level index (int) -> 0..3
 var best_moves: Dictionary = {}  # level index (int) -> best move count
@@ -20,9 +24,6 @@ var haptics_enabled := true
 ## Headless tests drive real play sessions, so they must not be able to write
 ## over a player's actual progress. They set this to false before starting.
 var persist_enabled := true
-
-var _dirty_timer: SceneTreeTimer
-
 
 func _ready() -> void:
 	load_data()
@@ -54,13 +55,6 @@ func is_unlocked(index: int) -> bool:
 	if stars_for(index) > 0:
 		return true
 	return stars_for(index - 1) > 0
-
-
-func highest_unlocked() -> int:
-	var index := 0
-	while index + 1 < Levels.count() and is_unlocked(index + 1):
-		index += 1
-	return index
 
 
 ## Star thresholds are relative to par (the level's shuffle depth), which is a
@@ -165,14 +159,27 @@ func load_data() -> void:
 		return
 
 	var data: Dictionary = json.data
+
+	# Settings are always safe to carry across; progress is not.
+	sfx_enabled = bool(data.get("sfx_enabled", true))
+	music_enabled = bool(data.get("music_enabled", true))
+	haptics_enabled = bool(data.get("haptics_enabled", true))
+
+	if int(data.get("version", 0)) < SAVE_VERSION:
+		push_warning("Orbits: save predates the current level bank; progress reset")
+		stars.clear()
+		best_moves.clear()
+		best_times.clear()
+		best_scores.clear()
+		last_level = 0
+		save_data()
+		return
+
 	stars = _string_keyed_to_int(data.get("stars", {}))
 	best_moves = _string_keyed_to_int(data.get("best_moves", {}))
 	best_times = _string_keyed_to_float(data.get("best_times", {}))
 	best_scores = _string_keyed_to_int(data.get("best_scores", {}))
-	last_level = int(data.get("last_level", 0))
-	sfx_enabled = bool(data.get("sfx_enabled", true))
-	music_enabled = bool(data.get("music_enabled", true))
-	haptics_enabled = bool(data.get("haptics_enabled", true))
+	last_level = clampi(int(data.get("last_level", 0)), 0, maxi(Levels.count() - 1, 0))
 
 
 # JSON object keys are always strings; convert both ways so the rest of the
