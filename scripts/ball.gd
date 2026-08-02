@@ -21,6 +21,17 @@ const IDLE_EMISSION := 0.10
 const CORRECT_EMISSION := 0.34
 const IDLE_DESATURATION := 0.30
 
+## Each colour slot is a real body whose dominant hue matches the slot, so the
+## socket tint still does the matching and the planet is a second, redundant
+## channel rather than a replacement for colour.
+const PLANETS: Dictionary = {
+	ColorType.CORAL: preload("res://assets/planets/coral_mars.png"),
+	ColorType.MINT: preload("res://assets/planets/mint_uranus.png"),
+	ColorType.AZURE: preload("res://assets/planets/azure_earth.png"),
+	ColorType.AMBER: preload("res://assets/planets/amber_jupiter.png"),
+	ColorType.VIOLET: preload("res://assets/planets/violet_neptune.png"),
+}
+
 
 static func color_for(color_type_value: int) -> Color:
 	return PALETTE.get(color_type_value, Color(0.35, 0.38, 0.45))
@@ -54,15 +65,21 @@ func _apply_material() -> void:
 
 	if _material == null:
 		_material = StandardMaterial3D.new()
-		_material.roughness = 0.25
-		_material.metallic = 0.35
+		# Planet surfaces are matte; the old high metallic read as plastic once
+		# there was a texture on them.
+		_material.roughness = 0.78
+		_material.metallic = 0.0
+		_material.specular = 0.18
 		_material.rim_enabled = true
-		_material.rim = 0.75
-		_material.rim_tint = 0.4
+		_material.rim = 0.30
+		_material.rim_tint = 0.7
 		_material.emission_enabled = true
 		mesh_instance.material_override = _material
 
-	_material.albedo_color = base if _is_correct else base.darkened(IDLE_DESATURATION)
+	_material.albedo_texture = PLANETS.get(color_type)
+	# albedo_color multiplies the texture, so it is a shade rather than the hue:
+	# tinting by the slot colour on top of the planet would double-tint it.
+	_material.albedo_color = _albedo_shade()
 	_material.emission = base
 	_material.emission_energy_multiplier = CORRECT_EMISSION if _is_correct else IDLE_EMISSION
 
@@ -79,9 +96,8 @@ func set_correct(correct: bool, animate: bool = true) -> void:
 		_apply_material()
 		return
 
-	var base := color_for(color_type)
 	var target_emission := CORRECT_EMISSION if correct else IDLE_EMISSION
-	var target_albedo := base if correct else base.darkened(IDLE_DESATURATION)
+	var target_albedo := _albedo_shade()
 
 	if not animate:
 		_material.emission_energy_multiplier = target_emission
@@ -103,6 +119,14 @@ func set_correct(correct: bool, animate: bool = true) -> void:
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		pop.tween_property(self, "scale", Vector3.ONE, 0.22) \
 			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+
+## A ball that is not yet home sits slightly in shadow. With a texture this is
+## a brightness change, not a hue change, so the planet stays recognisable.
+func _albedo_shade() -> Color:
+	if _is_correct:
+		return Color.WHITE
+	return Color.WHITE.darkened(IDLE_DESATURATION)
 
 
 func is_correct() -> bool:

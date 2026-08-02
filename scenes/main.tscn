@@ -11,15 +11,15 @@ background_mode = 1
 background_color = Color(0.008, 0.014, 0.036, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.4, 0.52, 0.82, 1)
-ambient_light_energy = 0.75
+ambient_light_energy = 0.42
 tonemap_mode = 2
 tonemap_white = 1.8
 glow_enabled = true
-glow_intensity = 0.42
+glow_intensity = 0.32
 glow_strength = 1.0
 glow_bloom = 0.08
 glow_blend_mode = 1
-glow_hdr_threshold = 1.05
+glow_hdr_threshold = 1.30
 
 [sub_resource type="StyleBoxFlat" id="StatsCard"]
 content_margin_left = 20.0
