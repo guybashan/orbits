@@ -39,6 +39,17 @@ PAR_START, PAR_END = 3, 70
 # Fractions through the game at which a new colour is introduced.
 PALETTE_STEPS = [0.15, 0.35, 0.55, 0.75]
 
+# A Constellation lands after every ten regular boards. It is a gift, not a
+# test: the board arrives already solved, comes apart in front of the player,
+# and they put it back. Deliberately small and roomy so it reads as relief
+# after a hard stretch, and it is excluded from the difficulty curve checks
+# because it is meant to break the climb.
+BONUS_EVERY = 10
+BONUS_NAMES = [
+    "Constellation", "Nebula Drift", "Starfall", "Perihelion", "Syzygy",
+    "Aphelion", "Corona", "Meridian Drift", "Parallax", "Apogee",
+]
+
 NAMES = [
     "Origin", "Ember", "Drift", "Signal", "Tether", "Cairn",
     "Vessel", "Anchor", "Sunrise", "Relay", "Bloom", "Ballast",
@@ -210,22 +221,62 @@ def render(levels):
     return "\n".join(out)
 
 
+def build_bonus(slot, after_index):
+    """A small, roomy board that starts solved and is scattered on screen."""
+    n = 5
+    balls = 8 + slot % 3
+    offset = (n - 1) / 2.0
+    shape = SHAPES[(slot * 3) % len(SHAPES)]
+    scored = []
+    for y in range(n):
+        for x in range(n):
+            dx, dy = x - offset, y - offset
+            scored.append((shape(dx, dy, n) + ((x * 5 + y * 3 + slot) % 7) * 0.002, x, y))
+    scored.sort()
+
+    colour = COLOURS[(slot * 2) % len(COLOURS)]
+    palette = 2 + slot % 3
+    pattern = [[0] * n for _ in range(n)]
+    for _, x, y in scored[:balls]:
+        pattern[y][x] = colour(x, y, x - offset, y - offset, n, palette)
+
+    return {
+        "name": BONUS_NAMES[slot % len(BONUS_NAMES)],
+        "size": n,
+        # Shallow: the scatter is what the player watches, and undoing it
+        # should take seconds, not minutes.
+        "depth": 5 + slot % 3,
+        "pattern": pattern,
+        "bonus": True,
+        "balls": balls,
+        "free": n * n - balls,
+        "free_pct": 100.0 * (n * n - balls) / (n * n),
+        "colours": len({v for row in pattern for v in row if v}),
+        "palette": palette,
+    }
+
+
 if __name__ == "__main__":
-    levels = [build(i) for i in range(COUNT)]
+    regular = [build(i) for i in range(COUNT)]
+
+    levels = []
+    slot = 0
+    for i, lv in enumerate(regular):
+        levels.append(lv)
+        if (i + 1) % BONUS_EVERY == 0:
+            levels.append(build_bonus(slot, i))
+            slot += 1
 
     # --- invariants the whole design rests on -----------------------------
     problems = []
-    for i in range(1, COUNT):
-        if levels[i]["depth"] < levels[i - 1]["depth"]:
+    graded = [lv for lv in levels if not lv.get("bonus")]
+    for i in range(1, len(graded)):
+        if graded[i]["depth"] < graded[i - 1]["depth"]:
             problems.append(f"par drops at L{i + 1}")
-        if levels[i]["colours"] < levels[i - 1]["colours"]:
-            problems.append(
-                f"colours drop at L{i + 1}: {levels[i - 1]['colours']} -> {levels[i]['colours']}"
-            )
-        if levels[i]["free_pct"] > levels[i - 1]["free_pct"] + 0.01:
-            problems.append(
-                f"congestion eases at L{i + 1}: {levels[i - 1]['free_pct']:.0f}% -> {levels[i]['free_pct']:.0f}%"
-            )
+        if graded[i]["colours"] < graded[i - 1]["colours"]:
+            problems.append(f"colours drop at graded level {i + 1}")
+        if graded[i]["free_pct"] > graded[i - 1]["free_pct"] + 0.01:
+            problems.append(f"congestion eases at graded level {i + 1}")
     seen = {}
     for i, lv in enumerate(levels):
         key = (lv["size"], tuple(tuple(r) for r in lv["pattern"]))
@@ -248,9 +299,10 @@ if __name__ == "__main__":
     _, _, tail = rest.partition("\n]\n")
     LEVELS_GD.write_text(head + "const LEVELS: Array = [\n" + render(levels) + "\n]\n" + tail)
 
-    print(f"wrote {COUNT} levels to {LEVELS_GD.name}")
+    bonus_count = sum(1 for lv in levels if lv.get("bonus"))
+    print(f"wrote {len(levels)} levels ({len(graded)} graded + {bonus_count} bonus)")
     print(f"{'#':>4} {'name':<17} {'grid':<5} {'balls':>5} {'free%':>6} {'cols':>5} {'par':>4}")
-    for i in list(range(0, COUNT, 10)) + [COUNT - 1]:
+    for i in list(range(0, len(levels), 11)) + [len(levels) - 1]:
         lv = levels[i]
         print(f"{i+1:>4} {lv['name']:<17} {lv['size']}x{lv['size']}   "
               f"{lv['balls']:>5} {lv['free_pct']:>5.0f}% {lv['colours']:>5} {lv['depth']:>4}")

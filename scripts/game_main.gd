@@ -51,6 +51,7 @@ var elapsed := 0.0
 var history: Array = []            # [{from, to}] — for undo
 var solved := false
 var input_locked := false
+var is_bonus := false
 
 ## Consecutive placements, for the rising lock melody. Reset by any move that
 ## does not put a ball home, so the phrase tracks a genuine run.
@@ -102,7 +103,15 @@ func _start_level(animate: bool = true) -> void:
 
 	Audio.set_music_for_level(level_index)
 	board.build(level["size"], level["pattern"])
-	board.load_state(Levels.generate_start(level_index), animate)
+	is_bonus = Levels.is_bonus(level_index)
+	if is_bonus:
+		# Show the finished board, then take it apart in front of the player.
+		# The scatter is literally the shuffle replayed forwards, so what they
+		# watch is exactly what they have to undo.
+		board.load_state(level["pattern"], animate)
+		_scatter()
+	else:
+		board.load_state(Levels.generate_start(level_index), animate)
 
 	level_label.text = "LEVEL %d" % (level_index + 1)
 	name_label.text = str(level["name"]).to_upper()
@@ -165,6 +174,28 @@ func _offset_top_ui(inset: int) -> void:
 	stats_margin.offset_bottom += inset
 	toast.offset_top += inset
 	toast.offset_bottom += inset
+
+
+## Play the shuffle forwards so the solved board visibly comes apart. Input
+## stays locked until it settles, otherwise the player fights the animation.
+func _scatter() -> void:
+	input_locked = true
+	var moves: Array = Levels.generate(level_index)["moves"]
+	_show_toast("Put it back together", 2.4)
+
+	await get_tree().create_timer(0.9).timeout
+	for step in moves:
+		if not is_inside_tree():
+			return
+		board.move(step["ball"], step["hole"])
+		Audio.play("move", 0.12)
+		await get_tree().create_timer(0.22).timeout
+
+	if not is_inside_tree():
+		return
+	board.refresh_correct(false)
+	_refresh_hud()
+	input_locked = false
 
 
 # ------------------------------------------------------------------ input --
@@ -365,7 +396,7 @@ func _check_win() -> void:
 	_deselect()
 	_refresh_hud()  # re-run now that `solved` is set, so UNDO greys out
 
-	var earned := GameData.stars_for_moves(moves, par)
+	var earned := 3 if is_bonus else GameData.stars_for_moves(moves, par)
 	var previous_best := GameData.best_for(level_index)
 	var previous_score := GameData.score_for(level_index)
 	var score := Score.for_level(moves, par, elapsed)
@@ -383,7 +414,7 @@ func _check_win() -> void:
 	if not is_inside_tree():
 		return
 
-	win_title.text = "SOLVED"
+	win_title.text = "RESTORED" if is_bonus else "SOLVED"
 	win_stars.earned = 0
 
 	var parts := Score.breakdown(moves, par, elapsed)
@@ -524,7 +555,7 @@ func _show_toast(message: String, hold: float = 1.6) -> void:
 ## First-run coaching, in place of a tutorial screen. Only ever shown to a
 ## player who has not yet cleared level 1.
 func _maybe_onboard() -> void:
-	if level_index != 0 or GameData.stars_for(0) > 0:
+	if is_bonus or level_index != 0 or GameData.stars_for(0) > 0:
 		return
 	_show_toast("Slide each ball onto a ring of its own colour", 3.4)
 	await get_tree().create_timer(4.2).timeout

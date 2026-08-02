@@ -115,6 +115,16 @@ const LEVELS: Array = [
 		],
 	},
 	{
+		"name": "Constellation", "size": 5, "depth": 5,
+		"pattern": [
+			[0, 0, 0, 0, 0],
+			[0, 1, 0, 2, 0],
+			[0, 1, 2, 2, 0],
+			[0, 1, 2, 2, 0],
+			[0, 0, 0, 0, 0],
+		],
+	},
+	{
 		"name": "Bloom", "size": 4, "depth": 9,
 		"pattern": [
 			[0, 0, 0, 0],
@@ -210,6 +220,16 @@ const LEVELS: Array = [
 			[0, 0, 0, 0, 1],
 			[2, 0, 0, 0, 0],
 			[1, 0, 0, 2, 0],
+		],
+	},
+	{
+		"name": "Nebula Drift", "size": 5, "depth": 6,
+		"pattern": [
+			[0, 0, 0, 0, 0],
+			[0, 2, 2, 2, 0],
+			[0, 3, 3, 3, 0],
+			[0, 1, 1, 1, 0],
+			[0, 0, 0, 0, 0],
 		],
 	},
 	{
@@ -310,6 +330,16 @@ const LEVELS: Array = [
 			[0, 0, 1, 2, 0],
 			[0, 2, 0, 2, 0],
 			[1, 1, 0, 0, 1],
+		],
+	},
+	{
+		"name": "Starfall", "size": 5, "depth": 7,
+		"pattern": [
+			[0, 2, 0, 4, 0],
+			[0, 3, 0, 1, 0],
+			[0, 4, 0, 2, 0],
+			[0, 1, 0, 3, 0],
+			[0, 2, 0, 4, 0],
 		],
 	},
 	{
@@ -421,6 +451,16 @@ const LEVELS: Array = [
 		],
 	},
 	{
+		"name": "Perihelion", "size": 5, "depth": 5,
+		"pattern": [
+			[0, 0, 0, 0, 0],
+			[0, 2, 0, 2, 0],
+			[1, 0, 1, 0, 1],
+			[0, 2, 0, 2, 0],
+			[0, 0, 1, 0, 0],
+		],
+	},
+	{
 		"name": "Cascade", "size": 6, "depth": 28,
 		"pattern": [
 			[1, 1, 1, 1, 1, 0],
@@ -528,6 +568,16 @@ const LEVELS: Array = [
 			[0, 1, 1, 1, 1, 0],
 			[0, 2, 2, 2, 2, 2],
 			[3, 0, 0, 0, 0, 3],
+		],
+	},
+	{
+		"name": "Syzygy", "size": 5, "depth": 6,
+		"pattern": [
+			[0, 0, 0, 0, 0],
+			[0, 2, 2, 2, 0],
+			[0, 2, 1, 2, 0],
+			[0, 2, 2, 2, 0],
+			[0, 0, 0, 0, 0],
 		],
 	},
 	{
@@ -642,6 +692,16 @@ const LEVELS: Array = [
 			[4, 3, 2, 2, 2, 3, 0],
 			[0, 3, 3, 3, 3, 3, 0],
 			[0, 0, 0, 4, 0, 0, 0],
+		],
+	},
+	{
+		"name": "Aphelion", "size": 5, "depth": 7,
+		"pattern": [
+			[0, 0, 3, 0, 0],
+			[0, 2, 3, 4, 0],
+			[0, 2, 3, 4, 0],
+			[0, 2, 3, 4, 0],
+			[0, 0, 0, 0, 0],
 		],
 	},
 	{
@@ -765,6 +825,16 @@ const LEVELS: Array = [
 		],
 	},
 	{
+		"name": "Corona", "size": 5, "depth": 5,
+		"pattern": [
+			[0, 0, 0, 2, 0],
+			[0, 2, 0, 1, 0],
+			[0, 2, 0, 1, 0],
+			[0, 1, 0, 2, 0],
+			[0, 1, 0, 0, 0],
+		],
+	},
+	{
 		"name": "Zenith", "size": 7, "depth": 49,
 		"pattern": [
 			[1, 0, 0, 2, 0, 0, 2],
@@ -882,6 +952,16 @@ const LEVELS: Array = [
 			[5, 5, 5, 5, 5, 5, 5],
 			[1, 1, 1, 1, 1, 1, 1],
 			[0, 2, 0, 2, 0, 0, 0],
+		],
+	},
+	{
+		"name": "Meridian Drift", "size": 5, "depth": 6,
+		"pattern": [
+			[0, 0, 2, 0, 0],
+			[0, 1, 0, 2, 0],
+			[3, 0, 1, 0, 1],
+			[0, 3, 0, 1, 0],
+			[0, 0, 1, 0, 0],
 		],
 	},
 	{
@@ -1015,6 +1095,16 @@ const LEVELS: Array = [
 		],
 	},
 	{
+		"name": "Parallax", "size": 5, "depth": 7,
+		"pattern": [
+			[0, 0, 0, 0, 0],
+			[0, 2, 2, 2, 0],
+			[3, 3, 3, 3, 0],
+			[0, 4, 4, 4, 0],
+			[0, 0, 0, 0, 0],
+		],
+	},
+	{
 		"name": "Threshold", "size": 8, "depth": 63,
 		"pattern": [
 			[1, 0, 1, 0, 1, 0, 1, 1],
@@ -1144,6 +1234,16 @@ const LEVELS: Array = [
 			[3, 3, 3, 3, 3, 3, 3, 3],
 		],
 	},
+	{
+		"name": "Apogee", "size": 5, "depth": 5,
+		"pattern": [
+			[0, 0, 0, 0, 0],
+			[0, 1, 2, 0, 0],
+			[0, 2, 1, 2, 0],
+			[0, 1, 2, 1, 0],
+			[0, 0, 0, 0, 0],
+		],
+	},
 ]
 
 
@@ -1153,6 +1253,12 @@ static func count() -> int:
 
 static func get_level(index: int) -> Dictionary:
 	return LEVELS[clampi(index, 0, LEVELS.size() - 1)]
+
+
+## A bonus board arrives already solved and comes apart on screen. It is a
+## breather between difficulty bands, so it is exempt from par scoring.
+static func is_bonus(index: int) -> bool:
+	return bool(get_level(index).get("bonus", false))
 
 
 static func par(index: int) -> int:

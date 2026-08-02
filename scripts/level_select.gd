@@ -88,8 +88,24 @@ func _make_card(index: int, card_size: float) -> Button:
 	var unlocked := GameData.is_unlocked(index)
 	var earned := GameData.stars_for(index)
 
+	var bonus := Levels.is_bonus(index)
+
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(card_size, card_size)
+	if bonus and unlocked:
+		# Gold, so a breather is visible from the grid rather than a surprise.
+		var gold := StyleBoxFlat.new()
+		gold.bg_color = Color(0.20, 0.15, 0.04, 0.85)
+		gold.border_width_left = 2
+		gold.border_width_top = 2
+		gold.border_width_right = 2
+		gold.border_width_bottom = 2
+		gold.border_color = Color(1.0, 0.82, 0.29, 0.85)
+		gold.corner_radius_top_left = 20
+		gold.corner_radius_top_right = 20
+		gold.corner_radius_bottom_right = 20
+		gold.corner_radius_bottom_left = 20
+		button.add_theme_stylebox_override("normal", gold)
 	button.disabled = not unlocked
 	button.focus_mode = Control.FOCUS_NONE
 	button.tooltip_text = str(level["name"])
@@ -108,10 +124,12 @@ func _make_card(index: int, card_size: float) -> Button:
 	number.text = str(index + 1)
 	number.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	number.add_theme_font_size_override("font_size", 34)
-	number.add_theme_color_override(
-		"font_color",
-		Color(0.88, 0.93, 1.0) if unlocked else Color(0.34, 0.38, 0.48)
-	)
+	var number_colour := Color(0.88, 0.93, 1.0)
+	if not unlocked:
+		number_colour = Color(0.34, 0.38, 0.48)
+	elif bonus:
+		number_colour = Color(1.0, 0.85, 0.35)
+	number.add_theme_color_override("font_color", number_colour)
 	box.add_child(number)
 
 	if unlocked:
