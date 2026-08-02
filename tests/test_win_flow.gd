@@ -32,6 +32,18 @@ func _run() -> void:
 		await process_frame
 
 	var main := current_scene
+
+	# Bonus boards open by taking themselves apart on screen, with input locked
+	# until the animation settles. Solving before it finishes fights it.
+	var guard := 0
+	while main.input_locked and guard < 600:
+		guard += 1
+		await process_frame
+	if main.input_locked:
+		failures.append("level never became playable")
+		_finish()
+		return
+
 	var solution: Array = Levels.generate(level_index)["moves"]
 
 	if main.moves != 0:
@@ -99,12 +111,15 @@ func _run() -> void:
 		root.get_texture().get_image().save_png(out_path)
 		print("screenshot -> ", out_path)
 
+	_finish(main.moves, par)
+
+
+func _finish(moves_used: int = 0, par: int = 0) -> void:
 	if failures.is_empty():
 		print("PASS — level %d solved in %d moves (par %d), 3 stars awarded" % [
-			level_index + 1, main.moves, par
+			level_index + 1, moves_used, par
 		])
 		quit(0)
-	else:
-		for failure in failures:
-			print("FAIL: ", failure)
-		quit(1)
+	for failure in failures:
+		print("FAIL: ", failure)
+	quit(1)

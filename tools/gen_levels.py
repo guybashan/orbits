@@ -211,9 +211,10 @@ def render(levels):
         rows_src = ",\n".join(
             "\t\t\t[" + ", ".join(str(v) for v in row) + "]" for row in lv["pattern"]
         )
+        flag = ' "bonus": true,' if lv.get("bonus") else ''
         out.append(
             '\t{\n'
-            f'\t\t"name": "{lv["name"]}", "size": {lv["size"]}, "depth": {lv["depth"]},\n'
+            f'\t\t"name": "{lv["name"]}", "size": {lv["size"]}, "depth": {lv["depth"]},{flag}\n'
             '\t\t"pattern": [\n' + rows_src + ',\n'
             '\t\t],\n'
             '\t},'

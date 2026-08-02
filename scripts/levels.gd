@@ -115,7 +115,7 @@ const LEVELS: Array = [
 		],
 	},
 	{
-		"name": "Constellation", "size": 5, "depth": 5,
+		"name": "Constellation", "size": 5, "depth": 5, "bonus": true,
 		"pattern": [
 			[0, 0, 0, 0, 0],
 			[0, 1, 0, 2, 0],
@@ -223,7 +223,7 @@ const LEVELS: Array = [
 		],
 	},
 	{
-		"name": "Nebula Drift", "size": 5, "depth": 6,
+		"name": "Nebula Drift", "size": 5, "depth": 6, "bonus": true,
 		"pattern": [
 			[0, 0, 0, 0, 0],
 			[0, 2, 2, 2, 0],
@@ -333,7 +333,7 @@ const LEVELS: Array = [
 		],
 	},
 	{
-		"name": "Starfall", "size": 5, "depth": 7,
+		"name": "Starfall", "size": 5, "depth": 7, "bonus": true,
 		"pattern": [
 			[0, 2, 0, 4, 0],
 			[0, 3, 0, 1, 0],
@@ -451,7 +451,7 @@ const LEVELS: Array = [
 		],
 	},
 	{
-		"name": "Perihelion", "size": 5, "depth": 5,
+		"name": "Perihelion", "size": 5, "depth": 5, "bonus": true,
 		"pattern": [
 			[0, 0, 0, 0, 0],
 			[0, 2, 0, 2, 0],
@@ -571,7 +571,7 @@ const LEVELS: Array = [
 		],
 	},
 	{
-		"name": "Syzygy", "size": 5, "depth": 6,
+		"name": "Syzygy", "size": 5, "depth": 6, "bonus": true,
 		"pattern": [
 			[0, 0, 0, 0, 0],
 			[0, 2, 2, 2, 0],
@@ -695,7 +695,7 @@ const LEVELS: Array = [
 		],
 	},
 	{
-		"name": "Aphelion", "size": 5, "depth": 7,
+		"name": "Aphelion", "size": 5, "depth": 7, "bonus": true,
 		"pattern": [
 			[0, 0, 3, 0, 0],
 			[0, 2, 3, 4, 0],
@@ -825,7 +825,7 @@ const LEVELS: Array = [
 		],
 	},
 	{
-		"name": "Corona", "size": 5, "depth": 5,
+		"name": "Corona", "size": 5, "depth": 5, "bonus": true,
 		"pattern": [
 			[0, 0, 0, 2, 0],
 			[0, 2, 0, 1, 0],
@@ -955,7 +955,7 @@ const LEVELS: Array = [
 		],
 	},
 	{
-		"name": "Meridian Drift", "size": 5, "depth": 6,
+		"name": "Meridian Drift", "size": 5, "depth": 6, "bonus": true,
 		"pattern": [
 			[0, 0, 2, 0, 0],
 			[0, 1, 0, 2, 0],
@@ -1095,7 +1095,7 @@ const LEVELS: Array = [
 		],
 	},
 	{
-		"name": "Parallax", "size": 5, "depth": 7,
+		"name": "Parallax", "size": 5, "depth": 7, "bonus": true,
 		"pattern": [
 			[0, 0, 0, 0, 0],
 			[0, 2, 2, 2, 0],
@@ -1235,7 +1235,7 @@ const LEVELS: Array = [
 		],
 	},
 	{
-		"name": "Apogee", "size": 5, "depth": 5,
+		"name": "Apogee", "size": 5, "depth": 5, "bonus": true,
 		"pattern": [
 			[0, 0, 0, 0, 0],
 			[0, 1, 2, 0, 0],
