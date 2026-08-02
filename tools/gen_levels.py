@@ -33,8 +33,11 @@ BANDS = [
     (0.80, 8),
 ]
 
-FREE_START, FREE_END = 0.78, 0.08
+FREE_START, FREE_END = 0.78, 0.03
 PAR_START, PAR_END = 3, 70
+
+# Fractions through the game at which a new colour is introduced.
+PALETTE_STEPS = [0.15, 0.35, 0.55, 0.75]
 
 NAMES = [
     "Origin", "Ember", "Drift", "Signal", "Tether", "Cairn",
@@ -96,7 +99,6 @@ SHAPES = [sq_centre, sq_edge, diamond, circle, cross, saltire,
 
 # --------------------------------------------------------------- colours --
 
-def c_single(x, y, dx, dy, n, k):     return 1
 def c_quadrant(x, y, dx, dy, n, k):   return 1 + ((1 if dx >= 0 else 0) + 2 * (1 if dy >= 0 else 0)) % k
 def c_rings(x, y, dx, dy, n, k):      return 1 + int(max(abs(dx), abs(dy))) % k
 def c_rows(x, y, dx, dy, n, k):       return 1 + y % k
@@ -105,7 +107,7 @@ def c_checker(x, y, dx, dy, n, k):    return 1 + (x + y) % k
 def c_diagonal(x, y, dx, dy, n, k):   return 1 + ((x + y) // 2) % k
 def c_radial(x, y, dx, dy, n, k):     return 1 + int(math.hypot(dx, dy)) % k
 
-COLOURS = [c_single, c_quadrant, c_rings, c_rows, c_cols,
+COLOURS = [c_quadrant, c_rings, c_rows, c_cols,
            c_checker, c_diagonal, c_radial]
 
 
@@ -116,13 +118,22 @@ def build(index):
 
     free_ratio = lerp(FREE_START, FREE_END, t)
     balls = int(round(cells * (1.0 - free_ratio)))
-    # Always leave room to manoeuvre: a board with one gap is a chore, not a
-    # puzzle, and the shuffle needs somewhere to move things.
-    balls = min(balls, cells - max(3, cells // 12))
+    balls = min(balls, cells - 1)
     balls = max(balls, 3)
+    # The last board is deliberately a one-gap puzzle — the tightest the
+    # mechanic goes, and the reason the curve exists at all.
+    if index == COUNT - 1:
+        balls = cells - 1
 
-    colour = COLOURS[(index * 3 + index // 5) % len(COLOURS)]
-    palette_size = min(1 + index // 12, 5)
+    # Colour count is the third difficulty dial, alongside ball count and grid
+    # size: more colours means more balls that look placeable but are not.
+    # Spread across the whole game — keyed to index it topped out at level 48
+    # and then sat flat for the remaining half.
+    palette_size = 1
+    for threshold in PALETTE_STEPS:
+        if t >= threshold:
+            palette_size += 1
+    palette_size = min(palette_size, 5)
     offset = (n - 1) / 2.0
 
     # Try shape/jitter combinations until this board differs from every earlier
@@ -130,6 +141,7 @@ def build(index):
     # shape functions pick the same cells, and four levels shipped identical
     # under different names.
     pattern = None
+    fallback = None
     for attempt in range(len(SHAPES) * 5):
         shape = SHAPES[(index * 5 + index // 7 + attempt) % len(SHAPES)]
         spread = 1 + attempt % 5
@@ -140,19 +152,33 @@ def build(index):
                 jitter = ((x * 7 + y * 13 + index * 31 + attempt * 17) % 11) * 0.001 * spread
                 scored.append((shape(dx, dy, n) + jitter, x, y))
         scored.sort()
+        chosen = scored[:balls]
 
-        candidate = [[0] * n for _ in range(n)]
-        for _, x, y in scored[:balls]:
-            dx, dy = x - offset, y - offset
-            candidate[y][x] = colour(x, y, dx, dy, n, palette_size)
+        for c_offset in range(len(COLOURS)):
+            colour = COLOURS[(index * 3 + index // 5 + c_offset) % len(COLOURS)]
+            candidate = [[0] * n for _ in range(n)]
+            for _, x, y in chosen:
+                dx, dy = x - offset, y - offset
+                candidate[y][x] = colour(x, y, dx, dy, n, palette_size)
 
-        key = (n, tuple(tuple(r) for r in candidate))
-        if key not in _SEEN:
-            _SEEN.add(key)
-            pattern = candidate
+            key = (n, tuple(tuple(r) for r in candidate))
+            if key in _SEEN:
+                continue
+            distinct = len({v for row in candidate for v in row if v})
+            if fallback is None:
+                fallback = (key, candidate)
+            if distinct == palette_size:
+                _SEEN.add(key)
+                pattern = candidate
+                break
+        if pattern is not None:
             break
+
     if pattern is None:
-        raise SystemExit(f"no unique board possible for level {index + 1}")
+        if fallback is None:
+            raise SystemExit(f"no unique board possible for level {index + 1}")
+        _SEEN.add(fallback[0])
+        pattern = fallback[1]
 
     par = int(round(lerp(PAR_START, PAR_END, t ** 1.08)))
     return {
@@ -163,6 +189,8 @@ def build(index):
         "balls": balls,
         "free": cells - balls,
         "free_pct": 100.0 * (cells - balls) / cells,
+        "colours": len({v for row in pattern for v in row if v}),
+        "palette": palette_size,
     }
 
 
@@ -190,6 +218,10 @@ if __name__ == "__main__":
     for i in range(1, COUNT):
         if levels[i]["depth"] < levels[i - 1]["depth"]:
             problems.append(f"par drops at L{i + 1}")
+        if levels[i]["colours"] < levels[i - 1]["colours"]:
+            problems.append(
+                f"colours drop at L{i + 1}: {levels[i - 1]['colours']} -> {levels[i]['colours']}"
+            )
         if levels[i]["free_pct"] > levels[i - 1]["free_pct"] + 0.01:
             problems.append(
                 f"congestion eases at L{i + 1}: {levels[i - 1]['free_pct']:.0f}% -> {levels[i]['free_pct']:.0f}%"
@@ -200,8 +232,8 @@ if __name__ == "__main__":
         if key in seen:
             problems.append(f"L{i + 1} is identical to L{seen[key] + 1}")
         seen[key] = i
-        if lv["free"] < 3:
-            problems.append(f"L{i + 1} has only {lv['free']} free cells")
+        if lv["free"] < 1:
+            problems.append(f"L{i + 1} has no free cell, so nothing can move")
         used = {v for row in lv["pattern"] for v in row if v}
         if not used:
             problems.append(f"L{i + 1} has no balls")
@@ -217,9 +249,9 @@ if __name__ == "__main__":
     LEVELS_GD.write_text(head + "const LEVELS: Array = [\n" + render(levels) + "\n]\n" + tail)
 
     print(f"wrote {COUNT} levels to {LEVELS_GD.name}")
-    print(f"{'#':>4} {'name':<17} {'grid':<5} {'balls':>5} {'free':>5} {'free%':>6} {'par':>4}")
+    print(f"{'#':>4} {'name':<17} {'grid':<5} {'balls':>5} {'free%':>6} {'cols':>5} {'par':>4}")
     for i in list(range(0, COUNT, 10)) + [COUNT - 1]:
         lv = levels[i]
         print(f"{i+1:>4} {lv['name']:<17} {lv['size']}x{lv['size']}   "
-              f"{lv['balls']:>5} {lv['free']:>5} {lv['free_pct']:>5.0f}% {lv['depth']:>4}")
-    print("\npar and congestion are both monotonic across all 100 levels")
+              f"{lv['balls']:>5} {lv['free_pct']:>5.0f}% {lv['colours']:>5} {lv['depth']:>4}")
+    print("\npar, congestion and colour count all climb monotonically")

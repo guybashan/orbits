@@ -284,14 +284,56 @@ TENSE = [                                                  # i - VI - iv - V
     {"sub": 82.41,  "pad": [207.65, 246.94, 329.63, 415.30]},   # E7 (G#: unresolved)
 ]
 
-TRACKS = [
-    # name,        bpm,  prog,  arp,  kick,        hats, lead, drone
-    ("music_1", 76.0,  CALM,  "quarter", (),          0.000, 0.00, 0.00),
-    ("music_2", 84.0,  CALM,  "eighth",  (0, 2),      0.016, 0.05, 0.00),
-    ("music_3", 92.0,  CALM,  "eighth",  (0, 1.5, 2), 0.024, 0.07, 0.05),
-    ("music_4", 100.0, TENSE, "busy",    (0, 1, 2, 3), 0.030, 0.09, 0.10),
-    ("music_5", 108.0, TENSE, "busy",    (0, 1, 2, 3), 0.038, 0.12, 0.18),
-]
+## Ten tracks, one per ten levels. Every parameter is a smooth function of how
+## far through the game the track sits, so the escalation is gradual rather
+## than a series of steps the player can be startled by.
+##
+## Excitement comes from tempo, rhythmic density and harmonic tension — never
+## from level. All ten are normalised to the same loudness at the end, so the
+## score gets busier without ever getting louder, which is the difference
+## between exciting and wearing.
+TRACK_COUNT = 10
+
+
+def track_config(i):
+    x = i / (TRACK_COUNT - 1)                       # 0.0 .. 1.0
+
+    if x < 0.34:
+        arp = "quarter" if x < 0.17 else "eighth"
+    elif x < 0.72:
+        arp = "eighth"
+    else:
+        arp = "busy"
+
+    # Kick fills in gradually: silence, then the backbeat, then every beat.
+    if x < 0.14:
+        kicks = ()
+    elif x < 0.34:
+        kicks = (0, 2)
+    elif x < 0.56:
+        kicks = (0, 1.5, 2)
+    elif x < 0.78:
+        kicks = (0, 1, 2, 3)
+    else:
+        kicks = (0, 1, 2, 2.5, 3)
+
+    # Harmony stays consonant for most of the run; the dominant only arrives
+    # near the end, where an unresolved lean is the point.
+    prog = CALM if x < 0.62 else TENSE
+
+    return {
+        "name": f"music_{i + 1}",
+        "bpm": 72.0 + 40.0 * x,
+        "prog": prog,
+        "arp": arp,
+        "kicks": kicks,
+        "hats": 0.0 if x < 0.14 else 0.012 + 0.024 * x,
+        "lead": 0.0 if x < 0.20 else 0.03 + 0.09 * x,
+        "drone": 0.0 if x < 0.40 else 0.16 * (x - 0.40) / 0.60,
+    }
+
+
+TRACKS = [track_config(i) for i in range(TRACK_COUNT)]
 
 
 def make_track(bpm, prog, arp_mode, kick_beats, hat_level, lead_level, drone_level,
@@ -379,6 +421,18 @@ if __name__ == "__main__":
     write_wav("ui.wav", make_ui())
     write_wav("star.wav", make_star())
     write_wav("win.wav", make_win())
-    print("music (5 escalating tracks):")
-    for name, bpm, prog, arp, kicks, hats, lead, drone in TRACKS:
-        write_wav(f"{name}.wav", make_track(bpm, prog, arp, kicks, hats, lead, drone))
+    print(f"music ({TRACK_COUNT} escalating tracks):")
+    rendered = [
+        make_track(c["bpm"], c["prog"], c["arp"], c["kicks"],
+                   c["hats"], c["lead"], c["drone"])
+        for c in TRACKS
+    ]
+
+    # Match perceived loudness across the whole set. Without this the busier
+    # tracks simply arrive louder, which reads as fatiguing rather than
+    # exciting — and makes the crossfade into them feel like a jump.
+    target = float(np.median([np.sqrt((x ** 2).mean()) for x in rendered]))
+    for cfg, audio in zip(TRACKS, rendered):
+        rms = float(np.sqrt((audio ** 2).mean()))
+        levelled = soft_clip(audio * (target / max(rms, 1e-9)), 1.1)
+        write_wav(f"{cfg['name']}.wav", levelled)

@@ -35,6 +35,11 @@ const MUSIC_TRACKS := [
 	preload("res://sounds/music_3.wav"),
 	preload("res://sounds/music_4.wav"),
 	preload("res://sounds/music_5.wav"),
+	preload("res://sounds/music_6.wav"),
+	preload("res://sounds/music_7.wav"),
+	preload("res://sounds/music_8.wav"),
+	preload("res://sounds/music_9.wav"),
+	preload("res://sounds/music_10.wav"),
 ]
 
 const MUSIC_CROSSFADE := 1.4
