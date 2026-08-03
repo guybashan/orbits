@@ -369,8 +369,8 @@ func _after_board_change(celebrate_locks: bool = true) -> void:
 
 func _refresh_hud() -> void:
 	time_label.text = Score.format_time(elapsed)
-	moves_label.text = "%d / %d moves" % [moves, par]
-	placed_label.text = "%d / %d placed" % [board.correct_count(), board.goal_ball_count()]
+	moves_label.text = "%d moves  (par %d)" % [moves, par]
+	placed_label.text = "%d of %d home" % [board.correct_count(), board.goal_ball_count()]
 	undo_button.disabled = history.is_empty() or solved
 
 	var solved_cells := {}
@@ -421,7 +421,7 @@ func _check_win() -> void:
 	win_score.text = "%s pts" % _grouped(score)
 	win_best.visible = score > previous_score and previous_score > 0
 
-	win_moves_val.text = "%d / %d" % [moves, par]
+	win_moves_val.text = "%d  (par %d)" % [moves, par]
 	win_moves_pts.text = "+%s" % _grouped(parts["moves"])
 	win_time_val.text = Score.format_time(elapsed)
 	win_time_pts.text = "+%s" % _grouped(parts["time"])
