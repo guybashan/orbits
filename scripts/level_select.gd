@@ -10,16 +10,32 @@ const SEPARATION := 14
 ## card under the finger must not navigate.
 const DRAG_CANCEL := 12.0
 
+## How quickly a flick decays once the finger lifts. Per second, applied
+## exponentially so it is frame-rate independent.
+const FLICK_FRICTION := 5.5
+## Below this the list is effectively still; stop rather than creep.
+const FLICK_CUTOFF := 8.0
+
 @onready var scroll: ScrollContainer = $Scroll
 @onready var grid: GridContainer = $Scroll/Grid
 
 var _drag_distance := 0.0
 var _is_scrolling := false
+## Position is kept as a float. ScrollContainer only takes whole pixels, and
+## rounding every individual drag event threw away sub-pixel motion, so slow
+## drags moved in steps or not at all.
+var _scroll_pos := 0.0
+var _velocity := 0.0
+var _dragging := false
 @onready var stars_label: Label = $Header/Row/StarsLabel
 
 
 func _ready() -> void:
 	Audio.update_music()
+	# The container must not scroll itself: this script drives scroll_vertical,
+	# and leaving the built-in handler live meant a drag was applied twice, so
+	# the list moved at double speed and fought the flick.
+	scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid.columns = COLUMNS
 	grid.add_theme_constant_override("h_separation", SEPARATION)
 	grid.add_theme_constant_override("v_separation", SEPARATION)
@@ -38,16 +54,25 @@ func _ready() -> void:
 ## moved. Handling it at the scene level means the gesture works no matter what
 ## is under the finger.
 func _input(event: InputEvent) -> void:
+	var pressed_now := false
+	var released_now := false
 	if event is InputEventScreenTouch:
-		if event.pressed:
-			_drag_distance = 0.0
-			_is_scrolling = false
-		return
+		pressed_now = event.pressed
+		released_now = not event.pressed
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		pressed_now = event.pressed
+		released_now = not event.pressed
 
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			_drag_distance = 0.0
-			_is_scrolling = false
+	if pressed_now:
+		# Catching a moving list should stop it, the way every native list does.
+		_drag_distance = 0.0
+		_is_scrolling = false
+		_dragging = true
+		_velocity = 0.0
+		_scroll_pos = float(scroll.scroll_vertical)
+		return
+	if released_now:
+		_dragging = false
 		return
 
 	var motion := 0.0
@@ -61,7 +86,31 @@ func _input(event: InputEvent) -> void:
 	_drag_distance += absf(motion)
 	if _drag_distance >= DRAG_CANCEL:
 		_is_scrolling = true
-	scroll.scroll_vertical -= int(round(motion))
+
+	_scroll_pos -= motion
+	# Carry the finger's speed so releasing mid-drag flicks rather than stops.
+	var frame := maxf(get_process_delta_time(), 1.0 / 120.0)
+	_velocity = -motion / frame
+	_apply_scroll()
+
+
+## Coast after the finger lifts, decaying exponentially, and stop dead at the
+## ends so the list cannot drift past its bounds.
+func _process(delta: float) -> void:
+	if _dragging or absf(_velocity) < FLICK_CUTOFF:
+		_velocity = 0.0
+		return
+	_scroll_pos += _velocity * delta
+	_velocity *= exp(-FLICK_FRICTION * delta)
+	_apply_scroll()
+
+
+func _apply_scroll() -> void:
+	var limit := maxf(scroll.get_v_scroll_bar().max_value - scroll.size.y, 0.0)
+	if _scroll_pos < 0.0 or _scroll_pos > limit:
+		_velocity = 0.0
+	_scroll_pos = clampf(_scroll_pos, 0.0, limit)
+	scroll.scroll_vertical = int(round(_scroll_pos))
 
 
 func _notification(what: int) -> void:

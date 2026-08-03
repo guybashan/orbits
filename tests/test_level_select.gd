@@ -98,6 +98,28 @@ func _run() -> void:
 	if screen._is_scrolling:
 		failures.append("a tap with no movement was mistaken for a scroll")
 
+	# --- a flick must coast after the finger lifts --------------------------
+	scroll.scroll_vertical = 0
+	screen._scroll_pos = 0.0
+	await _swipe_up(start, 300.0, 6)
+	var at_release := scroll.scroll_vertical
+	for i in 30:
+		await process_frame
+	if scroll.scroll_vertical <= at_release:
+		failures.append("the list stopped dead on release instead of coasting (%d)" % at_release)
+
+	# --- and touching it again must stop it ---------------------------------
+	_touch(start, true)
+	await process_frame
+	var caught := scroll.scroll_vertical
+	for i in 20:
+		await process_frame
+	if scroll.scroll_vertical != caught:
+		failures.append("touching a coasting list did not stop it")
+	_touch(start, false)
+	await process_frame
+
+
 	_finish(before, after)
 
 
