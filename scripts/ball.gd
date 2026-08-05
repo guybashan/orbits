@@ -45,6 +45,14 @@ static func color_for(color_type_value: int) -> Color:
 		color_type = value
 		_apply_material()
 
+## Planet surface, or a plain coloured sphere. Off for the opening levels: a
+## board of Neptunes and Uranuses is a lot to hand someone on level 1, and the
+## planets land better as something the game grows into. Levels decides when.
+@export var use_planet: bool = true:
+	set(value):
+		use_planet = value
+		_apply_material()
+
 @onready var mesh_instance: MeshInstance3D = $MeshInstance3D
 
 var _material: StandardMaterial3D
@@ -84,10 +92,8 @@ func _apply_material() -> void:
 		_material.emission_enabled = true
 		mesh_instance.material_override = _material
 
-	_material.albedo_texture = PLANETS.get(color_type)
-	# albedo_color multiplies the texture, so it is a shade rather than the hue:
-	# tinting by the slot colour on top of the planet would double-tint it.
-	_material.albedo_color = _albedo_shade()
+	_material.albedo_texture = PLANETS.get(color_type) if use_planet else null
+	_material.albedo_color = _target_albedo()
 	_material.emission = base
 	_material.emission_energy_multiplier = CORRECT_EMISSION if _is_correct else IDLE_EMISSION
 
@@ -105,7 +111,7 @@ func set_correct(correct: bool, animate: bool = true) -> void:
 		return
 
 	var target_emission := CORRECT_EMISSION if correct else IDLE_EMISSION
-	var target_albedo := _albedo_shade()
+	var target_albedo := _target_albedo()
 
 	if not animate:
 		_material.emission_energy_multiplier = target_emission
@@ -131,6 +137,14 @@ func set_correct(correct: bool, animate: bool = true) -> void:
 
 ## A ball that is not yet home sits slightly in shadow. With a texture this is
 ## a brightness change, not a hue change, so the planet stays recognisable.
+## With a planet texture, albedo_color only shades it — the hue comes from the
+## texture. Without one there is nothing to multiply, so it has to carry the
+## slot colour itself, or every ball renders grey.
+func _target_albedo() -> Color:
+	var shade := _albedo_shade()
+	return shade if use_planet else color_for(color_type) * shade
+
+
 func _albedo_shade() -> Color:
 	if _is_correct:
 		# Just under white. At full white, a ball that was home took the key and

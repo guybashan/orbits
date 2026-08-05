@@ -21,6 +21,10 @@ var grid_size := 7
 var _sockets: Dictionary = {}      # Vector2i -> MeshInstance3D
 var _socket_mats: Dictionary = {}  # Vector2i -> StandardMaterial3D
 var _balls: Dictionary = {}        # Vector2i -> Ball
+
+## Whether balls on this board wear planet textures. Set before load_state;
+## see Levels.uses_planets.
+var planets_enabled := true
 var _goal: Array = []              # [y][x] goal colours
 var _ball_tweens: Dictionary = {}  # ball instance id -> Tween
 
@@ -137,6 +141,7 @@ func load_state(state: Array, animate: bool = true) -> void:
 			var ball: Ball = BALL_SCENE.instantiate()
 			add_child(ball)
 			ball.position = cell_to_ball_pos(cell)
+			ball.use_planet = planets_enabled
 			ball.color_type = color_type
 			_balls[cell] = ball
 			if animate:

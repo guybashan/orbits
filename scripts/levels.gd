@@ -1261,6 +1261,17 @@ static func is_bonus(index: int) -> bool:
 	return bool(get_level(index).get("bonus", false))
 
 
+## Levels before this one use plain coloured spheres. Opening on a board of
+## Neptunes and Uranuses asks the player to learn the planets and the rules at
+## once, and the textures are busiest exactly where the boards are simplest.
+## Held back to the third band, they read as the game opening up.
+const PLANETS_FROM := 20
+
+
+static func uses_planets(index: int) -> bool:
+	return index >= PLANETS_FROM
+
+
 static func par(index: int) -> int:
 	return int(get_level(index)["depth"])
 

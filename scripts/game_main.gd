@@ -104,6 +104,7 @@ func _start_level(animate: bool = true) -> void:
 	Audio.set_music_for_level(level_index)
 	board.build(level["size"], level["pattern"])
 	is_bonus = Levels.is_bonus(level_index)
+	board.planets_enabled = Levels.uses_planets(level_index)
 	if is_bonus:
 		# Show the finished board, then take it apart in front of the player.
 		# The scatter is literally the shuffle replayed forwards, so what they
