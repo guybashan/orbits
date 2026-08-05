@@ -42,7 +42,10 @@ func _run() -> void:
 	if failures.is_empty():
 		print("PASS — top stack clears the notch (name ends %.0f, stats start %.0f)" % [
 			name_bottom, stats.global_position.y])
+		# quit() does not return, so without this a pass fell through to the
+		# quit(1) below and a green run reported an exit code of 1.
 		quit(0)
+		return
 	for f in failures:
 		print("FAIL: ", f)
 	quit(1)

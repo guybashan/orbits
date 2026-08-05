@@ -66,7 +66,10 @@ func _init() -> void:
 
 	if failures.is_empty():
 		print("PASS — stale progress is cleared, settings kept, save round-trips")
+		# quit() does not return, so without this a pass fell through to the
+		# quit(1) below and a green run reported an exit code of 1.
 		quit(0)
+		return
 	for f in failures:
 		print("FAIL: ", f)
 	quit(1)

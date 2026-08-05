@@ -81,7 +81,10 @@ func _init() -> void:
 			Score.best_possible(3), Score.best_possible(50)])
 		print("       perfect game: %d pts across %d levels (avg %d)" % [
 			total, Levels.count(), total / Levels.count()])
+		# quit() does not return, so without this a pass fell through to the
+		# quit(1) below and a green run reported an exit code of 1.
 		quit(0)
+		return
 	for f in failures:
 		print("FAIL: ", f)
 	quit(1)

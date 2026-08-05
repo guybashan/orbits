@@ -90,13 +90,15 @@ func _run() -> void:
 	if not screen._is_scrolling:
 		failures.append("a 420px drag was not recognised as a scroll, so the card would open")
 
-	# --- but a clean tap must still open a level ----------------------------
-	_touch(start, true)
-	await process_frame
-	_touch(start, false)
-	await process_frame
-	if screen._is_scrolling:
-		failures.append("a tap with no movement was mistaken for a scroll")
+	# --- a drag must move the list one-for-one, not double -------------------
+	# Touch also arrives as emulated mouse motion, and counting both moved the
+	# list at twice the finger's speed.
+	scroll.scroll_vertical = 0
+	screen._scroll_pos = 0.0
+	await _swipe_up(start, 200.0, 8)
+	var travelled := scroll.scroll_vertical
+	if travelled > 300:
+		failures.append("a 200px drag scrolled %d px — input is being counted twice" % travelled)
 
 	# --- a flick must coast after the finger lifts --------------------------
 	scroll.scroll_vertical = 0
@@ -116,9 +118,34 @@ func _run() -> void:
 		await process_frame
 	if scroll.scroll_vertical != caught:
 		failures.append("touching a coasting list did not stop it")
-	_touch(start, false)
+	# Release past the tap threshold. A clean release here would register as a
+	# tap and navigate away mid-test.
+	var lifted := start + Vector2(0, -20)
+	_drag(lifted, Vector2(0, -20))
+	await process_frame
+	_touch(lifted, false)
 	await process_frame
 
+	# --- a clean tap must still open a level ---------------------------------
+	# Deliberately last: this navigates, which frees the scene. Run earlier, it
+	# left every later assertion reading a freed node, and the resulting script
+	# error killed the coroutine before it could report — so the whole test
+	# looked like a hang instead of telling us what was wrong.
+	# Back to the top first: all the scrolling above leaves this screen point
+	# over a card far down the list, which is locked and cannot be pressed.
+	scroll.scroll_vertical = 0
+	screen._scroll_pos = 0.0
+	screen._velocity = 0.0
+	for i in 4:
+		await process_frame
+
+	_touch(start, true)
+	await process_frame
+	_touch(start, false)
+	for i in 10:
+		await process_frame
+	if current_scene == null or current_scene.scene_file_path != "res://scenes/main.tscn":
+		failures.append("a clean tap on a card did not open the level")
 
 	_finish(before, after)
 
@@ -126,7 +153,10 @@ func _run() -> void:
 func _finish(before: int = 0, after: int = 0) -> void:
 	if failures.is_empty():
 		print("PASS — dragging from a level card scrolls the list (%d -> %d px)" % [before, after])
+		# quit() does not return, so without this the pass fell through to the
+		# quit(1) below and a green run reported an exit code of 1.
 		quit(0)
+		return
 	for failure in failures:
 		print("FAIL: ", failure)
 	quit(1)

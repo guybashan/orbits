@@ -119,7 +119,10 @@ func _finish(moves_used: int = 0, par: int = 0) -> void:
 		print("PASS — level %d solved in %d moves (par %d), 3 stars awarded" % [
 			level_index + 1, moves_used, par
 		])
+		# quit() does not return, so without this a pass fell through to the
+		# quit(1) below and a green run reported an exit code of 1.
 		quit(0)
+		return
 	for failure in failures:
 		print("FAIL: ", failure)
 	quit(1)

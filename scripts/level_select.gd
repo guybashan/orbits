@@ -15,6 +15,10 @@ const DRAG_CANCEL := 12.0
 const FLICK_FRICTION := 5.5
 ## Below this the list is effectively still; stop rather than creep.
 const FLICK_CUTOFF := 8.0
+## How fast the captured speed fades while the finger is still down. Fast
+## enough that pausing for a moment before lifting means no flick, slow enough
+## that the frame or two between the last movement and the lift costs nothing.
+const HOLD_DECAY := 12.0
 
 @onready var scroll: ScrollContainer = $Scroll
 @onready var grid: GridContainer = $Scroll/Grid
@@ -27,6 +31,13 @@ var _is_scrolling := false
 var _scroll_pos := 0.0
 var _velocity := 0.0
 var _dragging := false
+## Godot turns touch into mouse events as well (Input.emulate_mouse_from_touch,
+## on by default), so one finger drag arrives twice: once as a screen drag and
+## once as mouse motion. Counting both moved the list at double speed, which
+## slammed it into the end of the range where the flick velocity is zeroed —
+## the list overshot AND refused to coast. Mouse input is ignored while a
+## finger is down; desktop, which has no touch, is unaffected.
+var _touch_active := false
 @onready var stars_label: Label = $Header/Row/StarsLabel
 
 
@@ -57,9 +68,12 @@ func _input(event: InputEvent) -> void:
 	var pressed_now := false
 	var released_now := false
 	if event is InputEventScreenTouch:
+		_touch_active = event.pressed
 		pressed_now = event.pressed
 		released_now = not event.pressed
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if _touch_active:
+			return  # the emulated twin of a touch we have already handled
 		pressed_now = event.pressed
 		released_now = not event.pressed
 
@@ -79,6 +93,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenDrag:
 		motion = event.relative.y
 	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		if _touch_active:
+			return  # already counted as a screen drag
 		motion = event.relative.y
 	else:
 		return
@@ -97,7 +113,15 @@ func _input(event: InputEvent) -> void:
 ## Coast after the finger lifts, decaying exponentially, and stop dead at the
 ## ends so the list cannot drift past its bounds.
 func _process(delta: float) -> void:
-	if _dragging or absf(_velocity) < FLICK_CUTOFF:
+	if _dragging:
+		# Decay, never zero. Zeroing here wiped the flick speed on the frame
+		# between the last drag event and the finger lifting — which is every
+		# release — so the list could never coast at all. Decaying instead also
+		# gives the behaviour a native list has: hold still for a moment before
+		# lifting and it releases into stillness rather than flicking.
+		_velocity *= exp(-HOLD_DECAY * delta)
+		return
+	if absf(_velocity) < FLICK_CUTOFF:
 		_velocity = 0.0
 		return
 	_scroll_pos += _velocity * delta
