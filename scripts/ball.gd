@@ -20,6 +20,9 @@ const PALETTE: Dictionary = {
 const IDLE_EMISSION := 0.10
 const CORRECT_EMISSION := 0.34
 const IDLE_DESATURATION := 0.30
+## Headroom kept below white on a ball that is home, so its texture survives
+## the lights instead of blowing out.
+const CORRECT_HEADROOM := 0.08
 
 ## Each colour slot is a real body whose dominant hue matches the slot, so the
 ## socket tint still does the matching and the planet is a second, redundant
@@ -69,9 +72,14 @@ func _apply_material() -> void:
 		# there was a texture on them.
 		_material.roughness = 0.78
 		_material.metallic = 0.0
-		_material.specular = 0.18
+		# metallic_specular, not specular: the latter is a Godot 3 name that 4.x
+		# only warns about, so this was silently doing nothing and spamming the
+		# log once per ball.
+		_material.metallic_specular = 0.18
 		_material.rim_enabled = true
-		_material.rim = 0.30
+		# A strong rim put a white halo around every ball, which cost the
+		# textures their contrast exactly where the sphere curves away.
+		_material.rim = 0.18
 		_material.rim_tint = 0.7
 		_material.emission_enabled = true
 		mesh_instance.material_override = _material
@@ -125,7 +133,10 @@ func set_correct(correct: bool, animate: bool = true) -> void:
 ## a brightness change, not a hue change, so the planet stays recognisable.
 func _albedo_shade() -> Color:
 	if _is_correct:
-		return Color.WHITE
+		# Just under white. At full white, a ball that was home took the key and
+		# fill lights straight into clipping and its planet bleached to a plain
+		# disc — the balls that mattered most were the ones you could not read.
+		return Color.WHITE.darkened(CORRECT_HEADROOM)
 	return Color.WHITE.darkened(IDLE_DESATURATION)
 
 
