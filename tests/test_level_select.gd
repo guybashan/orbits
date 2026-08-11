@@ -126,6 +126,29 @@ func _run() -> void:
 	_touch(lifted, false)
 	await process_frame
 
+	# --- a tap with a shaky finger must still open a level -------------------
+	# A finger resting on a card wobbles a pixel or two per frame. The scroll
+	# guard used to sum absolute movement, so that wobble accumulated past the
+	# threshold and the tap was rejected as a scroll — the list looked fine and
+	# levels simply would not start.
+	scroll.scroll_vertical = 0
+	screen._scroll_pos = 0.0
+	screen._velocity = 0.0
+	for i in 4:
+		await process_frame
+	_touch(start, true)
+	await process_frame
+	for i in 10:
+		# +3 then -3: lots of movement, no travel.
+		_drag(start + Vector2(0, 3), Vector2(0, 3))
+		await process_frame
+		_drag(start, Vector2(0, -3))
+		await process_frame
+	if screen._is_scrolling:
+		failures.append("a jittery tap that never travelled was treated as a scroll")
+	_touch(start, false)
+	await process_frame
+
 	# --- a clean tap must still open a level ---------------------------------
 	# Deliberately last: this navigates, which frees the scene. Run earlier, it
 	# left every later assertion reading a freed node, and the resulting script

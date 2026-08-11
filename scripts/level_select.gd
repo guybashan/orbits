@@ -6,9 +6,15 @@ extends Control
 const COLUMNS := 4
 const SEPARATION := 14
 
-## Past this many pixels of movement a press is a scroll, not a tap, and the
-## card under the finger must not navigate.
-const DRAG_CANCEL := 12.0
+## Past this much NET movement a press is a scroll, not a tap, and the card
+## under the finger must not navigate.
+##
+## Net, not accumulated. Summing absolute movement counted a finger's jitter:
+## resting on a card wobbles a pixel or two per frame, so an ordinary tap piled
+## up past the threshold without the finger going anywhere and the level refused
+## to open. What matters is whether the finger travelled, not how much it
+## trembled getting there.
+const DRAG_CANCEL := 16.0
 
 ## How quickly a flick decays once the finger lifts. Per second, applied
 ## exponentially so it is frame-rate independent.
@@ -23,7 +29,7 @@ const HOLD_DECAY := 12.0
 @onready var scroll: ScrollContainer = $Scroll
 @onready var grid: GridContainer = $Scroll/Grid
 
-var _drag_distance := 0.0
+var _net_drag := 0.0
 var _is_scrolling := false
 ## Position is kept as a float. ScrollContainer only takes whole pixels, and
 ## rounding every individual drag event threw away sub-pixel motion, so slow
@@ -79,7 +85,7 @@ func _input(event: InputEvent) -> void:
 
 	if pressed_now:
 		# Catching a moving list should stop it, the way every native list does.
-		_drag_distance = 0.0
+		_net_drag = 0.0
 		_is_scrolling = false
 		_dragging = true
 		_velocity = 0.0
@@ -99,8 +105,8 @@ func _input(event: InputEvent) -> void:
 	else:
 		return
 
-	_drag_distance += absf(motion)
-	if _drag_distance >= DRAG_CANCEL:
+	_net_drag += motion
+	if absf(_net_drag) >= DRAG_CANCEL:
 		_is_scrolling = true
 
 	_scroll_pos -= motion
