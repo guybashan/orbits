@@ -78,22 +78,24 @@ func _apply_material() -> void:
 		_material = StandardMaterial3D.new()
 		# Planet surfaces are matte; the old high metallic read as plastic once
 		# there was a texture on them.
-		_material.roughness = 0.78
 		_material.metallic = 0.0
 		# metallic_specular, not specular: the latter is a Godot 3 name that 4.x
 		# only warns about, so this was silently doing nothing and spamming the
 		# log once per ball.
 		_material.metallic_specular = 0.18
 		_material.rim_enabled = true
-		# A strong rim put a white halo around every ball, which cost the
-		# textures their contrast exactly where the sphere curves away.
-		_material.rim = 0.18
 		_material.rim_tint = 0.7
 		_material.emission_enabled = true
 		mesh_instance.material_override = _material
 
 	_material.albedo_texture = PLANETS.get(color_type) if use_planet else null
 	_material.albedo_color = _target_albedo()
+	# A texture carries its own detail and wants a matte surface, or the
+	# highlight bleaches it. A plain sphere has nothing but its shading, so
+	# matte left it reading as a flat disc — it needs the tight specular
+	# highlight to look round at all.
+	_material.roughness = 0.78 if use_planet else 0.34
+	_material.rim = 0.18 if use_planet else 0.34
 	_material.emission = base
 	_material.emission_energy_multiplier = CORRECT_EMISSION if _is_correct else IDLE_EMISSION
 
