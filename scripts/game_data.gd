@@ -9,7 +9,7 @@ const SAVE_FILE := "user://orbits.save"
 ## index, so when the patterns behind those indices change, old stars describe
 ## boards that no longer exist — they would show as cleared levels the player
 ## has never seen, with the unlock chain opening in the wrong places.
-const SAVE_VERSION := 5
+const SAVE_VERSION := 6
 
 var stars: Dictionary = {}       # level index (int) -> 0..3
 var best_moves: Dictionary = {}  # level index (int) -> best move count

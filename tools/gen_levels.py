@@ -37,14 +37,23 @@ FREE_START, FREE_END = 0.78, 0.03
 PAR_START, PAR_END = 3, 70
 
 # Fractions through the game at which a new colour is introduced.
-PALETTE_STEPS = [0.15, 0.35, 0.55, 0.75]
+#
+# Front-loaded, and deliberately not on the same gentle slope as par, balls and
+# board size. Those were all ramped linearly together, which put the second
+# colour at level 16 and the third at level 40 — so for the first fifteen levels
+# every ball was identical, any ball fitted any socket, and the game was a plain
+# sliding puzzle. Colour matching is the whole idea; a player deciding in the
+# first three minutes never reached it. Two colours now land almost immediately
+# and all five by the end of the first quarter.
+PALETTE_STEPS = [0.015, 0.06, 0.15, 0.27]
 
-# A Constellation lands after every ten regular boards. It is a gift, not a
-# test: the board arrives already solved, comes apart in front of the player,
-# and they put it back. Deliberately small and roomy so it reads as relief
-# after a hard stretch, and it is excluded from the difficulty curve checks
-# because it is meant to break the climb.
-BONUS_EVERY = 10
+# Bonus boards are off. They were the same mechanic on an easier board with a
+# scripted come-apart animation and three guaranteed stars — not different
+# enough to earn a slot, and their presence made the game 110 levels when it was
+# sold as 100. Turning them off also puts the one-gap finale last, where it
+# belongs, instead of behind a breather. Set to 10 to bring them back; the
+# builder below is left intact.
+BONUS_EVERY = 0
 BONUS_NAMES = [
     "Constellation", "Nebula Drift", "Starfall", "Perihelion", "Syzygy",
     "Aphelion", "Corona", "Meridian Drift", "Parallax", "Apogee",
@@ -264,7 +273,7 @@ if __name__ == "__main__":
     slot = 0
     for i, lv in enumerate(regular):
         levels.append(lv)
-        if (i + 1) % BONUS_EVERY == 0:
+        if BONUS_EVERY and (i + 1) % BONUS_EVERY == 0:
             levels.append(build_bonus(slot, i))
             slot += 1
 

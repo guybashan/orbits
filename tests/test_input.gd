@@ -46,7 +46,7 @@ func _find_move(main) -> Array:
 func _run() -> void:
 	var data := root.get_node_or_null("/root/GameData")
 	data.persist_enabled = false  # never touch the player's real save
-	data.last_level = 8  # a 5x5 board: plenty of room to move
+	data.last_level = 20  # a 5x5 board: plenty of room to move
 	change_scene_to_file("res://scenes/main.tscn")
 	for i in 10:
 		await process_frame
