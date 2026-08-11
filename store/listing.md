@@ -96,6 +96,19 @@ they cannot drift from what ships.
 
 ---
 
+## Filed on 12 August 2026
+
+Everything below the line was completed in Play Console and sent to Google for
+review (14 changes, typically reviewed within 7 days): privacy policy URL,
+sign-in details, ads, IARC content rating, target audience (13+), data safety
+(no collection), government apps, financial features, health, advertising ID,
+category (Game / Puzzle), and the closed-testing (alpha) release of 1.4.2 for
+176 countries.
+
+**Still open, and genuinely account-holder work: add 12+ testers to the closed
+track (Closed testing → Testers → create an email list) and get them opted in
+for 14 continuous days.**
+
 ## What only the account holder can do
 
 These are Play Console forms tied to the developer account. They cannot be
