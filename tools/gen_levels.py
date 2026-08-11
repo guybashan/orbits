@@ -18,6 +18,7 @@ band, never across one. Every pattern is emitted into scripts/levels.gd and
 then verified by tests/test_levels.gd, which proves each is solvable within its
 par by replaying its shuffle backwards.
 """
+import collections
 import math
 from pathlib import Path
 
@@ -83,6 +84,14 @@ assert len(NAMES) == COUNT, f"need {COUNT} names, have {len(NAMES)}"
 
 _SEEN = set()
 
+# Accepted boards per size, flattened, for the look-alike check below. Two
+# levels sharing this fraction of their cells read as "the same screen again"
+# even when no cell-for-cell duplicate exists. Crowded late boards cannot go
+# much below this: at 63 balls in 64 cells the occupancy is forced, so only the
+# colour arrangement is free to differ.
+MAX_SIMILARITY = 0.82
+_ACCEPTED = collections.defaultdict(list)
+
 
 def lerp(a, b, t):
     return a + (b - a) * t
@@ -127,8 +136,19 @@ def c_checker(x, y, dx, dy, n, k):    return 1 + (x + y) % k
 def c_diagonal(x, y, dx, dy, n, k):   return 1 + ((x + y) // 2) % k
 def c_radial(x, y, dx, dy, n, k):     return 1 + int(math.hypot(dx, dy)) % k
 
+def c_blocks(x, y, dx, dy, n, k):     return 1 + ((x // 2) + (y // 2)) % k
+def c_spiral(x, y, dx, dy, n, k):     return 1 + int((math.atan2(dy, dx) + math.pi) / (2 * math.pi) * k) % k
+def c_stripe3(x, y, dx, dy, n, k):    return 1 + ((x + 2 * y) // 2) % k
+def c_wedge(x, y, dx, dy, n, k):      return 1 + (abs(int(dx)) + 2 * abs(int(dy))) % k
+def c_knight(x, y, dx, dy, n, k):     return 1 + (x * 2 + y * 3) % k
+
+# Eleven, not seven. With seven schemes and a selector that advanced with the
+# level index, boards seven apart drew the same one — and on a crowded board the
+# scheme is the arrangement, so those pairs came out nearly identical. A count
+# coprime with the shape count also stops the two cycling in step.
 COLOURS = [c_quadrant, c_rings, c_rows, c_cols,
-           c_checker, c_diagonal, c_radial]
+           c_checker, c_diagonal, c_radial,
+           c_blocks, c_spiral, c_stripe3, c_wedge, c_knight]
 
 
 def build(index):
@@ -160,8 +180,13 @@ def build(index):
     # one. Without this, small boards collide: at four balls on a 4x4 several
     # shape functions pick the same cells, and four levels shipped identical
     # under different names.
-    pattern = None
-    fallback = None
+    # Rejecting only exact duplicates was not enough. There are 7 colour schemes
+    # and the selector advanced with the level index, so boards seven apart drew
+    # the same scheme; on a crowded board, where the shape barely shows because
+    # nearly every cell is filled, the scheme IS the arrangement, and those pairs
+    # came out 92-97% identical. Every candidate is now scored against the boards
+    # already accepted at this size, and the least similar one wins.
+    best = None  # (similarity, key, candidate)
     for attempt in range(len(SHAPES) * 5):
         shape = SHAPES[(index * 5 + index // 7 + attempt) % len(SHAPES)]
         spread = 1 + attempt % 5
@@ -184,21 +209,24 @@ def build(index):
             key = (n, tuple(tuple(r) for r in candidate))
             if key in _SEEN:
                 continue
-            distinct = len({v for row in candidate for v in row if v})
-            if fallback is None:
-                fallback = (key, candidate)
-            if distinct == palette_size:
-                _SEEN.add(key)
-                pattern = candidate
+            if len({v for row in candidate for v in row if v}) != palette_size:
+                continue
+
+            flat = [c for row in candidate for c in row]
+            worst = max((sum(1 for a, b in zip(flat, prev) if a == b) / len(flat)
+                         for prev in _ACCEPTED[n]), default=0.0)
+            if best is None or worst < best[0]:
+                best = (worst, key, candidate)
+            if worst <= MAX_SIMILARITY:
                 break
-        if pattern is not None:
+        if best is not None and best[0] <= MAX_SIMILARITY:
             break
 
-    if pattern is None:
-        if fallback is None:
-            raise SystemExit(f"no unique board possible for level {index + 1}")
-        _SEEN.add(fallback[0])
-        pattern = fallback[1]
+    if best is None:
+        raise SystemExit(f"no unique board possible for level {index + 1}")
+    _SEEN.add(best[1])
+    _ACCEPTED[n].append([c for row in best[2] for c in row])
+    pattern = best[2]
 
     par = int(round(lerp(PAR_START, PAR_END, t ** 1.08)))
     return {
