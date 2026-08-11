@@ -107,7 +107,7 @@ text = "FIRST LIGHT"
 horizontal_alignment = 1
 
 [node name="Goal" type="Control" parent="UI/Top/Row"]
-custom_minimum_size = Vector2(78, 78)
+custom_minimum_size = Vector2(86, 86)
 layout_mode = 2
 size_flags_vertical = 4
 mouse_filter = 2

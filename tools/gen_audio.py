@@ -174,12 +174,31 @@ def shaker(dur=0.09, seed=0, sr=SR):
 
 
 def make_move():
-    """Fires on every move: short, pitched, and completely un-fatiguing."""
-    body = pluck(660.0, 0.13, damping=0.986, seed=3, brightness=0.35)
-    click = np.zeros(len(body))
-    click[:40] = np.linspace(1.0, 0.0, 40) * 0.35
-    out = body * 0.75 + click
-    return soft_clip(reverb(out, mix=0.14) * 0.85)
+    """Fires on every move — up to seventy times a level, so it has to be the
+    least assertive sound in the game.
+
+    The old version was a 660Hz pluck with a raw 40-sample click spike glued to
+    the front. That click was a genuine tick transient, and at level-100 move
+    counts it read as the game tutting at you. This is a felt tap instead: a
+    low, slightly falling thump with a 6ms attack (no tick), and a whisper of
+    dark noise for the texture of the slide. Pitch variance at the play site
+    keeps repeats from stacking into a rhythm.
+    """
+    dur = 0.14
+    n = int(SR * dur)
+    tt = t(dur)
+    # Gentle downward sweep, like a soft mallet on wood: 300 -> 235 Hz.
+    sweep = 235.0 + 65.0 * np.exp(-tt * 34.0)
+    phase = 2 * math.pi * np.cumsum(sweep) / SR
+    thump = np.sin(phase) * env_ad(n, 0.006, 0.055)
+    # A touch of second harmonic so it does not read as a pure test tone.
+    thump += 0.22 * np.sin(2 * phase) * env_ad(n, 0.006, 0.035)
+    # The noise texture fades in over 10ms — at full level from sample one it
+    # was itself a small tick, which defeats the point of the 6ms attack.
+    slide = shaker(dur, seed=11) * 0.16
+    ramp = np.minimum(np.arange(n) / (SR * 0.010), 1.0)
+    slide[: len(ramp)] *= ramp[: len(slide)]
+    return soft_clip(reverb(thump * 0.9 + slide, mix=0.10) * 0.9)
 
 
 def make_bounce():
