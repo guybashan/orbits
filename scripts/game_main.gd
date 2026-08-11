@@ -419,7 +419,7 @@ func _check_win() -> void:
 	win_stars.earned = 0
 
 	var parts := Score.breakdown(moves, par, elapsed)
-	win_score.text = "%s pts" % _grouped(score)
+	win_score.text = "%s points" % _grouped(score)
 	win_best.visible = score > previous_score and previous_score > 0
 
 	win_moves_val.text = "%d  (par %d)" % [moves, par]

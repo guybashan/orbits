@@ -30,7 +30,7 @@ func _refresh() -> void:
 	continue_button.text = "CONTINUE  ·  LEVEL %d" % (resume + 1)
 
 	var possible := Levels.count() * 3
-	stars_label.text = "%d / %d stars   ·   %s pts" % [
+	stars_label.text = "%d / %d stars   ·   %s points" % [
 		GameData.total_stars(), possible, _grouped(GameData.total_score())
 	]
 
